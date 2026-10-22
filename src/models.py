@@ -205,4 +205,21 @@ class StudySessionSummary(BaseModel):
     by_course: List[CourseFocusStats]
 
 
+class ScoredNoteItem(BaseModel):
+    id: int
+    title: str
+    topic: str
+    course_code: str
+    relevance_score: float
+    is_pinned: bool = False
+    is_favorite: bool = False
+
+
+class SearchResultResponse(BaseModel):
+    query: str
+    total_matches: int
+    results: List[ScoredNoteItem]
+
+
+
 
