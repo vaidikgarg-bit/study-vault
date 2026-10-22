@@ -524,6 +524,26 @@ def test_analytics_badges_endpoint():
     assert "multi_course" in unlocked_ids
 
 
+def test_note_toc_endpoint():
+    courses = client.get("/api/courses").json()
+    cid = courses[0]["id"]
+    note = client.post("/api/notes", json={
+        "course_id": cid,
+        "title": "Structured TOC Note",
+        "topic": "Algorithms",
+        "content": "# Main Heading\nParagraph with [Google](https://google.com).\n## Subtopic\nDetails."
+    }).json()
+
+    res = client.get(f"/api/notes/{note['id']}/toc")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total_headers"] == 2
+    assert data["total_links"] == 1
+    assert data["table_of_contents"][0]["title"] == "Main Heading"
+    assert data["links"][0]["label"] == "Google"
+
+
+
 
 
 

@@ -104,7 +104,7 @@ def generate_table_of_contents(markdown_text: str) -> list:
         return []
 
     toc = []
-    pattern = re.compile(r"^(#{1,4})\s+(.+)$", re.MULTILINE)
+    pattern = re.compile(r"^\s*(#{1,4})\s+(.+)$", re.MULTILINE)
     for match in pattern.finditer(markdown_text):
         hashes, title = match.groups()
         level = len(hashes)
