@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from datetime import datetime, timezone
 from config import APP_NAME, APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from database import init_db, get_db_connection
+from migrations import get_applied_migrations, MIGRATION_REGISTRY, run_pending_migrations
 from markdown_util import strip_markdown_formatting, sanitize_markdown, extract_code_snippets
 from anki_util import serialize_cards_to_anki, parse_anki_tsv
 from pdf_parser import extract_text_from_pdf_bytes
@@ -49,6 +50,9 @@ from ai_generator import (
 
 # Initialize DB tables on startup
 init_db()
+_startup_conn = get_db_connection()
+run_pending_migrations(_startup_conn)
+_startup_conn.close()
 
 app = FastAPI(
     title=APP_TITLE,
@@ -95,6 +99,30 @@ def check_health():
         "version": APP_VERSION,
         "database": db_status,
         "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+
+@app.get("/api/system/migrations", tags=["System"])
+def get_migration_status():
+    """Returns database migration version status and registered migration records."""
+    conn = get_db_connection()
+    applied = get_applied_migrations(conn)
+    conn.close()
+
+    history = [
+        {
+            "version": m["version"],
+            "name": m["name"],
+            "applied": m["version"] in applied
+        }
+        for m in MIGRATION_REGISTRY
+    ]
+
+    return {
+        "total_registered": len(MIGRATION_REGISTRY),
+        "total_applied": len(applied),
+        "applied_versions": applied,
+        "migrations": history
     }
 
 
