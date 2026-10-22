@@ -40,6 +40,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_notes.add_argument("--search", type=str, help="Search by keyword in title or topic")
     p_notes.add_argument("--favorites", action="store_true", help="Filter bookmarked/favorite notes")
 
+    # Command: stats
+    subparsers.add_parser("stats", help="Display overview analytics and database storage stats")
+
     return parser
 
 
@@ -122,6 +125,33 @@ def handle_notes(args) -> int:
     return 0
 
 
+def handle_stats() -> int:
+    conn = get_db_connection()
+    c_count = conn.execute("SELECT COUNT(*) FROM courses;").fetchone()[0]
+    n_count = conn.execute("SELECT COUNT(*) FROM notes;").fetchone()[0]
+    q_count = conn.execute("SELECT COUNT(*) FROM quizzes;").fetchone()[0]
+    f_count = conn.execute("SELECT COUNT(*) FROM flashcards;").fetchone()[0]
+    a_count = conn.execute("SELECT COUNT(*) FROM quiz_attempts;").fetchone()[0]
+    s_mins = conn.execute("SELECT COALESCE(SUM(duration_minutes), 0) FROM study_sessions;").fetchone()[0]
+    conn.close()
+
+    db_path = BASE_DIR / "studyvault.db"
+    size_kb = round(os.path.getsize(db_path) / 1024, 1) if os.path.exists(db_path) else 0
+
+    print("\n📊 StudyVault Database Metrics")
+    print("-" * 40)
+    print(f"  Enrolled Courses      : {c_count}")
+    print(f"  Study Notes           : {n_count}")
+    print(f"  Cached AI Quizzes     : {q_count}")
+    print(f"  Cached Flashcard Decks: {f_count}")
+    print(f"  Quiz Evaluations Taken: {a_count}")
+    print(f"  Total Focus Minutes   : {s_mins} mins")
+    print(f"  Database File Size    : {size_kb} KB")
+    print()
+    return 0
+
+
+
 
 
 def handle_status() -> int:
@@ -150,6 +180,8 @@ def main(argv=None) -> int:
         return handle_courses(args)
     elif args.command == "notes":
         return handle_notes(args)
+    elif args.command == "stats":
+        return handle_stats()
 
     return 0
 
