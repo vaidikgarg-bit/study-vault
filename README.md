@@ -94,7 +94,16 @@ uvicorn src.app:app --reload --port 8000
 ```
 Open your browser at: **[http://localhost:8000](http://localhost:8000)**
 
-### 6. Run Test Suite
+### 6. StudyVault Terminal CLI
+Manage courses, notes, and database stats directly from your shell:
+```bash
+python3 scripts/vault_cli.py status
+python3 scripts/vault_cli.py courses --archived
+python3 scripts/vault_cli.py notes --course CS101 --favorites
+python3 scripts/vault_cli.py stats
+```
+
+### 7. Run Test Suite
 ```bash
 pytest tests -v
 ```
@@ -106,6 +115,8 @@ pytest tests -v
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/api/health` | System health status and DB check |
+| `GET` | `/api/system/migrations` | Schema migration history and versions |
+| `GET` | `/api/search` | Ranked relevance note search (`?q=`, `?course_id=`) |
 | `POST` | `/api/notes/{id}/pin` | Pin or unpin note to top of list |
 | `DELETE` | `/api/notes/bulk` | Bulk delete multiple notes in one call |
 | `GET` | `/api/tags` | List all unique tags and counts |
@@ -131,6 +142,7 @@ pytest tests -v
 | `GET` | `/api/notes/{id}/summary` | Extract executive bullet summary points |
 | `GET` | `/api/notes/{id}/concepts` | Extract key technical concepts and terms |
 | `GET` | `/api/notes/{id}/takeaways` | Extract definitions and actionable takeaways |
+| `GET` | `/api/notes/{id}/toc` | Generate anchor-linked Table of Contents and links |
 | `GET` | `/api/notes/{id}/code-snippets` | Extract programming code snippets & language syntax |
 | `POST` | `/api/notes/{id}/quiz` | Generate or retrieve AI quiz for a note |
 | `POST` | `/api/notes/{id}/quiz/regenerate` | Force cache refresh and regenerate quiz |
@@ -139,6 +151,7 @@ pytest tests -v
 | `POST` | `/api/flashcards/review` | SuperMemo-2 (SM-2) repetition scheduler calculation |
 | `GET` | `/api/flashcards/due` | Retrieve all review decks available for study |
 | `GET` | `/api/flashcards/decay-forecast` | Ebbinghaus forgetting curve projected retention decay |
+| `GET` | `/api/flashcards/stability` | FSRS memory stability days and retrievability status |
 | `POST` | `/api/quiz-attempts` | Record student quiz score & time |
 | `GET` | `/api/quiz-attempts/{id}` | Lookup full metadata for specific quiz attempt |
 | `GET` | `/api/analytics` | Overall student learning metrics |
