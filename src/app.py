@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from config import APP_NAME, APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from database import init_db, get_db_connection
 from migrations import get_applied_migrations, MIGRATION_REGISTRY, run_pending_migrations
+from search_engine import rank_notes
 from markdown_util import strip_markdown_formatting, sanitize_markdown, extract_code_snippets
 from anki_util import serialize_cards_to_anki, parse_anki_tsv
 from pdf_parser import extract_text_from_pdf_bytes
@@ -36,7 +37,8 @@ from models import (
     StudySessionCreate,
     NoteHistoryResponse, NoteRevertResponse,
     FlashcardImportRequest, FlashcardImportResponse,
-    StudySessionSummary, CourseFocusStats
+    StudySessionSummary, CourseFocusStats,
+    SearchResultResponse, ScoredNoteItem
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -360,6 +362,51 @@ def get_all_notes(
     rows = conn.execute(query, params).fetchall()
     conn.close()
     return [enrich_note_dict(dict(r)) for r in rows]
+
+
+@app.get("/api/search", response_model=SearchResultResponse, tags=["Search"])
+def search_notes_ranked(q: str, course_id: Optional[int] = None, limit: int = 20):
+    """Executes full-text ranked relevance search across notes."""
+    if not q or not q.strip():
+        return {"query": "", "total_matches": 0, "results": []}
+
+    conn = get_db_connection()
+    where = "WHERE 1=1"
+    params = []
+    if course_id is not None:
+        where += " AND n.course_id = ?"
+        params.append(course_id)
+
+    rows = conn.execute(f"""
+        SELECT n.id, n.title, n.topic, n.content, n.tags, n.is_pinned, n.is_favorite,
+               c.code as course_code
+        FROM notes n
+        JOIN courses c ON n.course_id = c.id
+        {where};
+    """, params).fetchall()
+    conn.close()
+
+    raw_notes = [dict(r) for r in rows]
+    ranked = rank_notes(q, raw_notes, min_score=1.0)[:limit]
+
+    items = [
+        ScoredNoteItem(
+            id=r["id"],
+            title=r["title"],
+            topic=r["topic"],
+            course_code=r["course_code"],
+            relevance_score=r["relevance_score"],
+            is_pinned=bool(r["is_pinned"]),
+            is_favorite=bool(r["is_favorite"])
+        )
+        for r in ranked
+    ]
+
+    return {
+        "query": q,
+        "total_matches": len(items),
+        "results": items
+    }
 
 
 @app.get("/api/notes/{note_id}", response_model=NoteResponse)
