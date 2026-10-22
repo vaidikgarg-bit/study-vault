@@ -21,7 +21,13 @@ from config import APP_NAME, APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from database import init_db, get_db_connection
 from migrations import get_applied_migrations, MIGRATION_REGISTRY, run_pending_migrations
 from search_engine import rank_notes
-from markdown_util import strip_markdown_formatting, sanitize_markdown, extract_code_snippets
+from markdown_util import (
+    strip_markdown_formatting,
+    sanitize_markdown,
+    extract_code_snippets,
+    generate_table_of_contents,
+    extract_markdown_links
+)
 from anki_util import serialize_cards_to_anki, parse_anki_tsv
 from pdf_parser import extract_text_from_pdf_bytes
 from gamification import evaluate_badges
@@ -928,6 +934,27 @@ def get_note_code_snippets(note_id: int):
     result["note_id"] = note_id
     result["title"] = note["title"]
     return result
+
+
+@app.get("/api/notes/{note_id}/toc", tags=["Notes"])
+def get_note_table_of_contents(note_id: int):
+    """Generates anchor-linked Table of Contents and extracts references from a note."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id, title, content FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    conn.close()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    toc = generate_table_of_contents(note["content"])
+    links = extract_markdown_links(note["content"])
+    return {
+        "note_id": note_id,
+        "title": note["title"],
+        "total_headers": len(toc),
+        "total_links": len(links),
+        "table_of_contents": toc,
+        "links": links
+    }
 
 
 # ---------------------------------------------------------------------------
