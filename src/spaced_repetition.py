@@ -109,3 +109,27 @@ def project_retention_curve(interval_days: int, ease_factor: float = 2.5, days_a
         })
     return curve
 
+
+def calculate_fsrs_metrics(repetitions: int, interval_days: int, ease_factor: float = 2.5, days_elapsed: int = 0) -> dict:
+    """
+    Computes Free Spaced Repetition Scheduler (FSRS)-inspired Memory Stability (S) and Retrievability (R).
+    - Stability (S): Estimated days for retrieval probability to drop from 100% to 90%.
+    - Retrievability (R): Current recall probability after days_elapsed.
+      Formula: R = (1 + days_elapsed / (9 * S))^(-1) * 100%
+    """
+    rep_factor = max(1.0, math.sqrt(repetitions + 1))
+    stability = max(1.0, round(interval_days * (ease_factor / 2.5) * rep_factor, 1))
+
+    if days_elapsed <= 0:
+        retrievability = 100.0
+    else:
+        retrievability = round((1.0 / (1.0 + (days_elapsed / (9.0 * stability)))) * 100.0, 1)
+
+    return {
+        "stability_days": stability,
+        "days_elapsed": days_elapsed,
+        "retrievability_percent": retrievability,
+        "retention_status": "Optimal" if retrievability >= 90.0 else ("Review Recommended" if retrievability >= 75.0 else "Decayed")
+    }
+
+
