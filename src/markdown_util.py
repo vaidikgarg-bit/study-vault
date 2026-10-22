@@ -94,3 +94,27 @@ def extract_code_snippets(markdown_text: str) -> dict:
         "languages": lang_counts,
         "snippets": snippets
     }
+
+
+def generate_table_of_contents(markdown_text: str) -> list:
+    """
+    Parses Markdown headers (# to ####) and generates an anchor-linked Table of Contents structure.
+    """
+    if not markdown_text:
+        return []
+
+    toc = []
+    pattern = re.compile(r"^(#{1,4})\s+(.+)$", re.MULTILINE)
+    for match in pattern.finditer(markdown_text):
+        hashes, title = match.groups()
+        level = len(hashes)
+        clean_title = title.strip()
+        anchor = re.sub(r"[^\w\s-]", "", clean_title.lower()).strip().replace(" ", "-")
+        toc.append({
+            "level": level,
+            "title": clean_title,
+            "anchor": f"#{anchor}"
+        })
+
+    return toc
+
