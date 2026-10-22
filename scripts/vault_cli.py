@@ -34,6 +34,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_courses.add_argument("--archived", action="store_true", help="Include archived courses")
     p_courses.add_argument("--code", type=str, help="Show details for specific course code (e.g. CS101)")
 
+    # Command: notes
+    p_notes = subparsers.add_parser("notes", help="List and search study notes in the vault")
+    p_notes.add_argument("--course", type=str, help="Filter by course code")
+    p_notes.add_argument("--search", type=str, help="Search by keyword in title or topic")
+    p_notes.add_argument("--favorites", action="store_true", help="Filter bookmarked/favorite notes")
+
     return parser
 
 
@@ -75,6 +81,48 @@ def handle_courses(args) -> int:
     return 0
 
 
+def handle_notes(args) -> int:
+    conn = get_db_connection()
+    query = """
+        SELECT n.id, n.title, n.topic, n.is_favorite, n.is_pinned, c.code as course_code
+        FROM notes n
+        JOIN courses c ON n.course_id = c.id
+        WHERE 1=1
+    """
+    params = []
+    if args.course:
+        query += " AND c.code = ?"
+        params.append(args.course.upper())
+    if args.favorites:
+        query += " AND n.is_favorite = 1"
+    if args.search:
+        query += " AND (n.title LIKE ? OR n.topic LIKE ? OR n.content LIKE ?)"
+        term = f"%{args.search}%"
+        params.extend([term, term, term])
+
+    query += " ORDER BY n.is_pinned DESC, n.id DESC;"
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+
+    if not rows:
+        print("No matching notes found.")
+        return 0
+
+    print(f"\n{'ID':<5} {'COURSE':<10} {'TOPIC':<25} {'TITLE':<40} {'FLAGS'}")
+    print("-" * 85)
+    for r in rows:
+        flags = []
+        if r["is_pinned"]:
+            flags.append("PINNED")
+        if r["is_favorite"]:
+            flags.append("★")
+        flag_str = " ".join(flags)
+        print(f"{r['id']:<5} {r['course_code']:<10} {r['topic'][:23]:<25} {r['title'][:38]:<40} {flag_str}")
+    print()
+    return 0
+
+
+
 
 def handle_status() -> int:
     try:
@@ -100,6 +148,8 @@ def main(argv=None) -> int:
         return handle_status()
     elif args.command == "courses":
         return handle_courses(args)
+    elif args.command == "notes":
+        return handle_notes(args)
 
     return 0
 
