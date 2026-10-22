@@ -13,7 +13,8 @@ from spaced_repetition import (
     estimate_retention_probability,
     classify_card_urgency,
     get_mastery_level,
-    project_retention_curve
+    project_retention_curve,
+    calculate_fsrs_metrics
 )
 
 
@@ -82,4 +83,17 @@ def test_retention_curve_projection():
     assert curve[0]["needs_review"] is False
     assert curve[-1]["day"] == 10
     assert curve[-1]["retention_percent"] < curve[0]["retention_percent"]
+
+
+def test_calculate_fsrs_metrics():
+    # Day 0: 100% retrievability
+    m0 = calculate_fsrs_metrics(repetitions=2, interval_days=6, ease_factor=2.5, days_elapsed=0)
+    assert m0["retrievability_percent"] == 100.0
+    assert m0["retention_status"] == "Optimal"
+    assert m0["stability_days"] > 6.0
+
+    # With elapsed days, retrievability drops
+    m_later = calculate_fsrs_metrics(repetitions=2, interval_days=6, ease_factor=2.5, days_elapsed=15)
+    assert m_later["retrievability_percent"] < 100.0
+
 

@@ -543,6 +543,16 @@ def test_note_toc_endpoint():
     assert data["links"][0]["label"] == "Google"
 
 
+def test_flashcard_stability_endpoint():
+    res = client.get("/api/flashcards/stability?repetitions=2&interval_days=6&ease_factor=2.5&days_elapsed=3")
+    assert res.status_code == 200
+    data = res.json()
+    assert "stability_days" in data
+    assert "retrievability_percent" in data
+    assert data["retrievability_percent"] > 0
+
+
+
 
 
 
