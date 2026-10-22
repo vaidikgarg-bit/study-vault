@@ -118,3 +118,28 @@ def generate_table_of_contents(markdown_text: str) -> list:
 
     return toc
 
+
+def extract_markdown_links(markdown_text: str) -> list:
+    """
+    Extracts hyperlinked citations and references from markdown notes.
+    Distinguishes external web URLs from internal anchor fragments.
+    """
+    if not markdown_text:
+        return []
+
+    pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+    links = []
+    for match in pattern.finditer(markdown_text):
+        label, url = match.groups()
+        label_clean = label.strip()
+        url_clean = url.strip()
+        is_external = url_clean.startswith(("http://", "https://"))
+        links.append({
+            "label": label_clean,
+            "url": url_clean,
+            "is_external": is_external
+        })
+
+    return links
+
+
