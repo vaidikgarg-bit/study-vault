@@ -53,3 +53,20 @@ def run_pending_migrations(conn: sqlite3.Connection) -> List[str]:
             applied_names.append(f"{ver}_{name}")
 
     return applied_names
+
+
+@register_migration(version=1, name="initial_core_schema")
+def migration_001_initial(conn: sqlite3.Connection):
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_notes_course_id ON notes(course_id);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_notes_favorite ON notes(is_favorite);")
+
+
+@register_migration(version=2, name="note_versioning_and_history")
+def migration_002_versioning(conn: sqlite3.Connection):
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_note_history_note_id ON note_history(note_id);")
+
+
+@register_migration(version=3, name="course_archival_index")
+def migration_003_archival(conn: sqlite3.Connection):
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_courses_archived ON courses(is_archived);")
+
