@@ -221,5 +221,26 @@ class SearchResultResponse(BaseModel):
     results: List[ScoredNoteItem]
 
 
+class PomodoroSessionCreate(BaseModel):
+    course_id: int
+    work_minutes: int = 25
+    break_minutes: int = 5
+    completed: bool = True
+    task_description: Optional[str] = "Deep study focus session"
+
+
+class PomodoroSessionResponse(PomodoroSessionCreate):
+    id: int
+    created_at: str
+
+
+class PomodoroStats(BaseModel):
+    total_pomodoros: int
+    total_work_minutes: int
+    total_break_minutes: int
+    completed_rate_percent: float
+
+
+
 
 
