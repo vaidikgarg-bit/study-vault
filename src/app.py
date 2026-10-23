@@ -1324,6 +1324,31 @@ def log_pomodoro_session(pomo: PomodoroSessionCreate):
     }
 
 
+@app.get("/api/pomodoro/stats", response_model=PomodoroStats, tags=["Analytics"])
+def get_pomodoro_stats():
+    """Returns aggregated Pomodoro cycle metrics, total focus minutes, and completion rate."""
+    conn = get_db_connection()
+    row = conn.execute("""
+        SELECT COUNT(id) as total_pomo,
+               COALESCE(SUM(work_minutes), 0) as total_work,
+               COALESCE(SUM(break_minutes), 0) as total_break,
+               COALESCE(SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END), 0) as total_completed
+        FROM pomodoro_sessions;
+    """).fetchone()
+    conn.close()
+
+    total_p = row["total_pomo"]
+    total_c = row["total_completed"]
+    comp_rate = round((total_c / max(1, total_p)) * 100.0, 1) if total_p > 0 else 0.0
+
+    return {
+        "total_pomodoros": total_p,
+        "total_work_minutes": row["total_work"],
+        "total_break_minutes": row["total_break"],
+        "completed_rate_percent": comp_rate
+    }
+
+
 @app.get("/api/study-sessions/stats", response_model=StudySessionSummary, tags=["Analytics"])
 def get_study_session_stats():
     """Returns aggregated focus time, breakdown by session activity, and distribution per course."""
