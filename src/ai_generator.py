@@ -1,0 +1,231 @@
+"""
+AI Study Engine: Generates intelligent multiple-choice quizzes and flashcards from student notes.
+Features Gemini API integration with an offline rule-based NLP extraction fallback.
+"""
+
+import json
+import os
+import re
+from typing import List, Dict, Any
+import httpx
+
+
+def generate_quiz_from_notes(note_title: str, note_content: str) -> List[Dict[str, Any]]:
+    """Generates structured multiple-choice questions from study notes."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        try:
+            return _generate_quiz_gemini(note_title, note_content, api_key)
+        except Exception:
+            # Fall back to offline heuristic engine
+            pass
+    return _generate_quiz_offline(note_title, note_content)
+
+
+def generate_flashcards_from_notes(note_title: str, note_content: str) -> List[Dict[str, Any]]:
+    """Generates spaced-repetition flashcards from study notes."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        try:
+            return _generate_flashcards_gemini(note_title, note_content, api_key)
+        except Exception:
+            pass
+    return _generate_flashcards_offline(note_title, note_content)
+
+
+# ---------------------------------------------------------------------------
+# Offline Heuristic NLP Engine (Zero API Key required, 100% Offline Ready)
+# ---------------------------------------------------------------------------
+
+def _generate_quiz_offline(title: str, text: str) -> List[Dict[str, Any]]:
+    questions = []
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+
+    # Extract definitions and facts
+    for idx, line in enumerate(lines):
+        # Look for "Term: Definition" or "Term is Definition"
+        match_colon = re.match(r"^([A-Za-z0-9\s\-\(\)\']+):\s*(.+)$", line)
+        match_is = re.match(r"^([A-Za-z0-9\s\-\(\)\']+)\s+(is|are|consist of|finds)\s+(.+)$", line, re.IGNORECASE)
+
+        if match_colon:
+            term = match_colon.group(1).strip()
+            fact = match_colon.group(2).strip()
+            if len(term) > 3 and len(fact) > 10 and not term.startswith("Note"):
+                correct = fact
+                distractors = [
+                    f"Inverts the traversal order and operates in O(N!) factorial space.",
+                    f"Requires O(V^3) time complexity and fails on sorted inputs.",
+                    f"Only applies to disconnected graphs and static array buffers."
+                ]
+                options = [correct] + distractors
+                # Shuffle deterministically based on string length
+                shift = len(term) % 4
+                options = options[shift:] + options[:shift]
+                correct_idx = options.index(correct)
+
+                questions.append({
+                    "id": len(questions) + 1,
+                    "question": f"Which of the following accurately describes '{term}'?",
+                    "options": options,
+                    "correct_index": correct_idx,
+                    "explanation": f"According to the notes: {term} — {correct}"
+                })
+
+        elif match_is and len(questions) < 5:
+            term = match_is.group(1).strip()
+            verb = match_is.group(2).strip()
+            fact = match_is.group(3).strip()
+            if len(term) > 3 and len(fact) > 15:
+                correct = f"{verb} {fact}"
+                distractors = [
+                    "evaluates to False under all circumstances without verification.",
+                    "is bounded by O(1) constant time but leaks memory across threads.",
+                    "requires external hardware interrupts to complete execution."
+                ]
+                options = [correct] + distractors
+                shift = len(fact) % 4
+                options = options[shift:] + options[:shift]
+                correct_idx = options.index(correct)
+
+                questions.append({
+                    "id": len(questions) + 1,
+                    "question": f"What is true regarding '{term}'?",
+                    "options": options,
+                    "correct_index": correct_idx,
+                    "explanation": f"Key takeaway: {term} {correct}"
+                })
+
+        if len(questions) >= 5:
+            break
+
+    # If document was too brief or unstructured, provide high-yield conceptual questions
+    if len(questions) < 3:
+        questions.append({
+            "id": len(questions) + 1,
+            "question": f"What is the primary topic covered in '{title}'?",
+            "options": [
+                f"Core foundations, definitions, and key properties of {title}.",
+                "Hardware assembly language registers.",
+                "CSS box model positioning and responsive flexbox.",
+                "Database relational calculus and BCNF normalization."
+            ],
+            "correct_index": 0,
+            "explanation": f"This note focuses directly on the core principles of {title}."
+        })
+        questions.append({
+            "id": len(questions) + 1,
+            "question": "What is the recommended approach when reviewing this material before an exam?",
+            "options": [
+                "Review the definitions, understand worst-case edge cases, and test recall with flashcards.",
+                "Memorize line numbers without understanding algorithmic properties.",
+                "Skip practice problems and rely purely on passive reading.",
+                "Discard notes after a single initial lecture."
+            ],
+            "correct_index": 0,
+            "explanation": "Active recall and spaced testing are scientifically proven to maximize exam performance."
+        })
+
+    return questions
+
+
+def _generate_flashcards_offline(title: str, text: str) -> List[Dict[str, Any]]:
+    cards = []
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+
+    for line in lines:
+        match_colon = re.match(r"^([A-Za-z0-9\s\-\(\)\']+):\s*(.+)$", line)
+        if match_colon:
+            front = match_colon.group(1).strip()
+            back = match_colon.group(2).strip()
+            if len(front) > 3 and len(back) > 8:
+                cards.append({
+                    "id": len(cards) + 1,
+                    "front": front,
+                    "back": back,
+                    "topic": title
+                })
+        elif "Algorithm" in line or "Invariant" in line or "Complexity" in line:
+            cards.append({
+                "id": len(cards) + 1,
+                "front": line.split(".")[0],
+                "back": line,
+                "topic": title
+            })
+
+        if len(cards) >= 6:
+            break
+
+    if not cards:
+        cards.append({
+            "id": 1,
+            "front": f"Overview of {title}",
+            "back": text[:200] + ("..." if len(text) > 200 else ""),
+            "topic": title
+        })
+
+    return cards
+
+
+# ---------------------------------------------------------------------------
+# Gemini AI Online Engine (Activated when GEMINI_API_KEY is configured)
+# ---------------------------------------------------------------------------
+
+def _generate_quiz_gemini(title: str, text: str, api_key: str) -> List[Dict[str, Any]]:
+    prompt = f"""You are a university professor creating an exam quiz from student notes.
+Note Title: {title}
+Note Content:
+{text}
+
+Generate 5 high-yield multiple-choice questions in strict JSON format:
+[
+  {{
+    "id": 1,
+    "question": "Question text",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correct_index": 0,
+    "explanation": "Brief explanation why this option is correct."
+  }}
+]
+Return ONLY valid JSON array with no extra markdown or text."""
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
+    }
+    with httpx.Client(timeout=15.0) as client:
+        res = client.post(url, json=payload)
+        res.raise_for_status()
+        data = res.json()
+        raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+        return json.loads(raw_text)
+
+
+def _generate_flashcards_gemini(title: str, text: str, api_key: str) -> List[Dict[str, Any]]:
+    prompt = f"""You are an expert tutor creating study flashcards from student notes.
+Note Title: {title}
+Note Content:
+{text}
+
+Generate 6 spaced-repetition flashcards in strict JSON format:
+[
+  {{
+    "id": 1,
+    "front": "Concept or Question",
+    "back": "Clear, concise definition or answer",
+    "topic": "{title}"
+  }}
+]
+Return ONLY valid JSON array with no extra markdown or text."""
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
+    }
+    with httpx.Client(timeout=15.0) as client:
+        res = client.post(url, json=payload)
+        res.raise_for_status()
+        data = res.json()
+        raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+        return json.loads(raw_text)
