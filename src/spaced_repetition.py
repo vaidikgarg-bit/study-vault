@@ -3,7 +3,7 @@ SuperMemo-2 (SM-2) Spaced Repetition Algorithm.
 Used by flashcard software like Anki to calculate optimal memory review intervals.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 
 
@@ -40,7 +40,7 @@ def calculate_sm2(rating: int, repetitions: int = 0, ease_factor: float = 2.5, i
     new_ease_factor = ease_factor + (0.1 - (5 - sm2_score) * (0.08 + (5 - sm2_score) * 0.02))
     new_ease_factor = max(1.3, round(new_ease_factor, 2))  # Minimum ease factor 1.3
 
-    next_review_date = (datetime.utcnow() + timedelta(days=new_interval)).strftime("%Y-%m-%d")
+    next_review_date = (datetime.now(timezone.utc) + timedelta(days=new_interval)).strftime("%Y-%m-%d")
 
     return {
         "repetitions": new_repetitions,

@@ -34,3 +34,17 @@ def test_sm2_failure_resets_interval():
     result = calculate_sm2(rating=1, repetitions=4, ease_factor=2.5, interval_days=30)
     assert result["repetitions"] == 0
     assert result["interval_days"] == 1
+
+
+def test_sm2_ease_factor_never_drops_below_floor():
+    ease = 2.5
+    for _ in range(10):
+        ease = calculate_sm2(rating=1, repetitions=0, ease_factor=ease)["ease_factor"]
+    assert ease == 1.3
+
+
+def test_sm2_due_date_matches_interval():
+    from datetime import datetime, timedelta, timezone
+    result = calculate_sm2(rating=3, repetitions=1, ease_factor=2.5, interval_days=1)
+    expected = (datetime.now(timezone.utc) + timedelta(days=result["interval_days"])).strftime("%Y-%m-%d")
+    assert result["due_date"] == expected
