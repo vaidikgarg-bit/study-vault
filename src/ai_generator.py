@@ -170,6 +170,28 @@ def _generate_flashcards_offline(title: str, text: str) -> List[Dict[str, Any]]:
 # Gemini AI Online Engine (Activated when GEMINI_API_KEY is configured)
 # ---------------------------------------------------------------------------
 
+GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+DEFAULT_GEMINI_MODEL = "gemini-1.5-flash"
+
+
+def _call_gemini_json(prompt: str, api_key: str) -> List[Dict[str, Any]]:
+    """Sends a prompt to Gemini and parses the JSON array it returns."""
+    model = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+    url = f"{GEMINI_API_BASE}/{model}:generateContent"
+    # Key goes in a header so it never shows up in URLs or request logs
+    headers = {"x-goog-api-key": api_key}
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
+    }
+    with httpx.Client(timeout=15.0) as client:
+        res = client.post(url, json=payload, headers=headers)
+        res.raise_for_status()
+        data = res.json()
+        raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+        return json.loads(raw_text)
+
+
 def _generate_quiz_gemini(title: str, text: str, api_key: str) -> List[Dict[str, Any]]:
     prompt = f"""You are a university professor creating an exam quiz from student notes.
 Note Title: {title}
@@ -188,17 +210,7 @@ Generate 5 high-yield multiple-choice questions in strict JSON format:
 ]
 Return ONLY valid JSON array with no extra markdown or text."""
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
-    }
-    with httpx.Client(timeout=15.0) as client:
-        res = client.post(url, json=payload)
-        res.raise_for_status()
-        data = res.json()
-        raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-        return json.loads(raw_text)
+    return _call_gemini_json(prompt, api_key)
 
 
 def _generate_flashcards_gemini(title: str, text: str, api_key: str) -> List[Dict[str, Any]]:
@@ -218,14 +230,4 @@ Generate 6 spaced-repetition flashcards in strict JSON format:
 ]
 Return ONLY valid JSON array with no extra markdown or text."""
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
-    }
-    with httpx.Client(timeout=15.0) as client:
-        res = client.post(url, json=payload)
-        res.raise_for_status()
-        data = res.json()
-        raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-        return json.loads(raw_text)
+    return _call_gemini_json(prompt, api_key)
