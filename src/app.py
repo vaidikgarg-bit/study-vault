@@ -102,6 +102,17 @@ def create_course(course: CourseCreate):
     }
 
 
+@app.delete("/api/courses/{course_id}")
+def delete_course(course_id: int):
+    conn = get_db_connection()
+    cursor = conn.execute("DELETE FROM courses WHERE id = ?;", (course_id,))
+    conn.commit()
+    conn.close()
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return {"message": "Course and its notes deleted successfully"}
+
+
 # ---------------------------------------------------------------------------
 # Notes Endpoints
 # ---------------------------------------------------------------------------

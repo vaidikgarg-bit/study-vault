@@ -217,3 +217,26 @@ def test_delete_note():
     # Ensure it's deleted
     get_res = client.get(f"/api/notes/{note_id}")
     assert get_res.status_code == 404
+
+
+def test_delete_course_removes_its_notes():
+    import random
+    course = client.post("/api/courses", json={
+        "code": f"TMP{random.randint(1000, 9999)}",
+        "title": "Temporary Course",
+        "department": "Testing"
+    }).json()
+    note = client.post("/api/notes", json={
+        "course_id": course["id"],
+        "title": "Note inside temporary course",
+        "topic": "Cascade",
+        "content": "Deleted together with its course."
+    }).json()
+
+    assert client.delete(f"/api/courses/{course['id']}").status_code == 200
+    assert client.get(f"/api/notes/{note['id']}").status_code == 404
+    assert course["id"] not in [c["id"] for c in client.get("/api/courses").json()]
+
+
+def test_delete_missing_course_returns_404():
+    assert client.delete("/api/courses/999999").status_code == 404
