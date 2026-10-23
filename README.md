@@ -49,6 +49,10 @@ An intelligent campus web application built with **FastAPI**, **SQLite**, and **
 - [x] `feat(api): implement RESTful FastAPI endpoints for courses, notes, and quiz attempts`
 - [x] `feat(ui): build interactive single-page dashboard with 3D flashcards and quiz arena`
 - [x] `ci: add automated pytest suite and GitHub Actions workflow`
+- [x] `feat(parser): add PDF document text extraction and slide reader`
+- [x] `feat(algorithm): implement SuperMemo-2 spaced repetition scheduler`
+- [x] `feat(api): add DELETE /api/courses/{id}`
+- [x] `feat(api): add ?regenerate=true to quiz and flashcard endpoints`
 
 ---
 
@@ -75,6 +79,13 @@ pip install -r requirements.txt
 *(Note: If omitted, StudyVault automatically uses its built-in offline NLP engine!)*
 ```bash
 export GEMINI_API_KEY="your-api-key-here"
+export GEMINI_MODEL="gemini-1.5-flash"  # optional, this is the default
+```
+
+### Optional: Choose the database file
+StudyVault stores data in `studyvault.db` at the project root. Set `STUDYVAULT_DB` to use a different file:
+```bash
+export STUDYVAULT_DB="/path/to/my-vault.db"
 ```
 
 ### 5. Start the Web Server
@@ -87,6 +98,7 @@ Open your browser at: **[http://localhost:8000](http://localhost:8000)**
 ```bash
 pytest tests -v
 ```
+Tests run against a temporary database, so your own `studyvault.db` is left untouched.
 
 ---
 
@@ -96,12 +108,18 @@ pytest tests -v
 | :--- | :--- | :--- |
 | `GET` | `/api/courses` | List all enrolled courses with note counts |
 | `POST` | `/api/courses` | Enroll a new course |
+| `DELETE` | `/api/courses/{id}` | Delete a course along with its notes, quizzes and attempts |
+| `GET` | `/api/courses/{id}/notes` | List notes for one course |
 | `GET` | `/api/notes` | List all study notes across courses |
+| `GET` | `/api/notes/{id}` | Fetch a single note |
 | `POST` | `/api/notes` | Upload a new lecture note |
-| `POST` | `/api/notes/{id}/quiz` | Generate or retrieve AI quiz for a note |
-| `POST` | `/api/notes/{id}/flashcards` | Generate or retrieve flashcards for a note |
-| `POST` | `/api/quiz-attempts` | Record student quiz score & time |
-| `GET` | `/api/analytics` | Overall student learning metrics |
+| `POST` | `/api/notes/upload-pdf` | Create a note from an uploaded PDF (multipart form) |
+| `DELETE` | `/api/notes/{id}` | Delete a note |
+| `POST` | `/api/notes/{id}/quiz` | Generate or retrieve AI quiz for a note (`?regenerate=true` forces a new one) |
+| `POST` | `/api/notes/{id}/flashcards` | Generate or retrieve flashcards for a note (`?regenerate=true` forces a new deck) |
+| `POST` | `/api/flashcards/review` | Compute the next SM-2 review interval for a card |
+| `POST` | `/api/quiz-attempts` | Record student quiz score & time (score must be between 0 and `total_questions`) |
+| `GET` | `/api/analytics` | Overall student learning metrics, including `total_flashcards` generated |
 
 ---
 
