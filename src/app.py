@@ -1495,6 +1495,45 @@ def get_study_activity():
     }
 
 
+@app.get("/api/analytics/export/csv", tags=["Analytics"])
+def export_quiz_attempts_csv():
+    """Exports student quiz attempt history as tabular CSV file."""
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT qa.id, c.code as course_code, n.title as note_title,
+               qa.score, qa.total_questions,
+               ROUND(CAST(qa.score AS FLOAT) / qa.total_questions * 100, 1) as percentage,
+               qa.time_taken_seconds, qa.created_at
+        FROM quiz_attempts qa
+        JOIN notes n ON qa.note_id = n.id
+        JOIN courses c ON n.course_id = c.id
+        ORDER BY qa.id ASC;
+    """).fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["id", "course_code", "note_title", "score", "total_questions", "percentage", "time_taken_seconds", "created_at"])
+
+    for r in rows:
+        writer.writerow([
+            r["id"],
+            r["course_code"],
+            r["note_title"],
+            r["score"],
+            r["total_questions"],
+            r["percentage"],
+            r["time_taken_seconds"],
+            str(r["created_at"])
+        ])
+
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="quiz_attempts_history.csv"'}
+    )
+
+
 @app.get("/api/analytics/badges", tags=["Analytics"])
 def get_user_badges():
     """Calculates student milestones, achievement badges, and current unlocked statuses."""
