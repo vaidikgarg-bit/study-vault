@@ -15,7 +15,7 @@
           "title": "Integration by Parts and Taylor Series",
           "topic": "Calculus & Analysis",
           "tags": "calculus,integrals,taylor-series",
-          "content": "# Integration by Parts & Series Expansions\n\n## 1. Integration by Parts Formula\nDerived from the product rule of differentiation:\n$$\\int u \\, dv = u v - \\int v \\, du$$\n\n### LIATE Priority Rule for Choosing $u$:\n1. Logarithmic functions ($\ln x$)\n2. Inverse trigonometric functions ($\arctan x$)\n3. Algebraic polynomial powers ($x^2, x^3$)\n4. Trigonometric functions ($\sin x, \cos x$)\n5. Exponential functions ($e^x$)\n\n## 2. Taylor Series Definition\nThe Taylor series expansion of a smooth infinitely differentiable function $f(x)$ centered at $a$ is:\n$$f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!} (x - a)^n$$\n\nWhen $a = 0$, this is termed the Maclaurin Series."
+          "content": "# Integration by Parts & Series Expansions\n\n## 1. Integration by Parts Formula\nDerived from the product rule of differentiation:\n$$\\int u \\, dv = u v - \\int v \\, du$$\n\n### LIATE Priority Rule for Choosing u:\n1. Logarithmic functions (ln x)\n2. Inverse trigonometric functions (arctan x)\n3. Algebraic polynomial powers (x^2, x^3)\n4. Trigonometric functions (sin x, cos x)\n5. Exponential functions (e^x)\n\n## 2. Taylor Series Definition\nThe Taylor series expansion of a smooth infinitely differentiable function f(x) centered at a is:\n$$f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!} (x - a)^n$$\n\nWhen a = 0, this is termed the Maclaurin Series."
         }
       ]
     },
