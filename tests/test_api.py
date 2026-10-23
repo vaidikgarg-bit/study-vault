@@ -165,6 +165,16 @@ def test_record_quiz_attempt_rejects_invalid_values(score, total, seconds):
     assert response.status_code == 422
 
 
+def test_record_quiz_attempt_for_missing_note_returns_404():
+    response = client.post("/api/quiz-attempts", json={
+        "note_id": 999999,
+        "score": 1,
+        "total_questions": 2,
+        "time_taken_seconds": 10
+    })
+    assert response.status_code == 404
+
+
 def test_delete_note():
     # Create temporary note to delete
     courses = client.get("/api/courses").json()

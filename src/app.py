@@ -306,6 +306,10 @@ def review_flashcard_sm2(
 @app.post("/api/quiz-attempts", response_model=QuizAttemptResponse, status_code=status.HTTP_201_CREATED)
 def record_quiz_attempt(attempt: QuizAttemptCreate):
     conn = get_db_connection()
+    if not conn.execute("SELECT 1 FROM notes WHERE id = ?;", (attempt.note_id,)).fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Note not found")
+
     cursor = conn.execute(
         "INSERT INTO quiz_attempts (note_id, score, total_questions, time_taken_seconds) VALUES (?, ?, ?, ?) RETURNING id, created_at;",
         (attempt.note_id, attempt.score, attempt.total_questions, attempt.time_taken_seconds)
