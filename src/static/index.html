@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyVault - Course Notes & AI Quiz Hub</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-slate-800/90 border-b border-slate-700/80 sticky top-0 z-40 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="showView('dashboard')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i class="fa-solid fa-graduation-cap text-white text-xl"></i>
+        </div>
+        <div>
+          <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">StudyVault</span>
+          <span class="text-xs block text-slate-400 font-medium">Campus Notes & AI Quiz Engine</span>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center space-x-3">
+        <button onclick="openModal('courseModal')" class="px-3.5 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-semibold transition flex items-center gap-2">
+          <i class="fa-solid fa-folder-plus text-indigo-400"></i>
+          <span>New Course</span>
+        </button>
+        <button onclick="openModal('noteModal')" class="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition shadow-md shadow-indigo-600/30 flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i>
+          <span>Upload Note</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full grid grid-cols-1 lg:grid-cols-4 gap-8">
+    
+    <!-- Left Navigation Sidebar -->
+    <aside class="lg:col-span-1 space-y-6">
+      <nav class="bg-slate-800/60 rounded-2xl p-3 border border-slate-700/60 space-y-1">
+        <button onclick="showView('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-indigo-400 bg-slate-700/60 transition">
+          <i class="fa-solid fa-layer-group text-lg w-5"></i>
+          <span>Course Vault</span>
+        </button>
+        <button onclick="showView('analytics')" id="nav-analytics" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-700/40 transition">
+          <i class="fa-solid fa-chart-pie text-lg w-5"></i>
+          <span>Study Analytics</span>
+        </button>
+      </nav>
+
+      <!-- Course Filter List -->
+      <div class="bg-slate-800/60 rounded-2xl p-5 border border-slate-700/60">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Enrolled Courses</h3>
+          <span id="course-count-badge" class="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-bold">0</span>
+        </div>
+        <div id="course-list" class="space-y-2">
+          <!-- Dynamically populated via JS -->
+          <div class="text-sm text-slate-500 italic">Loading courses...</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="lg:col-span-3 space-y-6">
+      
+      <!-- VIEW 1: Dashboard / Course Vault -->
+      <section id="view-dashboard" class="space-y-6">
+        <!-- Search and Filter Bar -->
+        <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-800/40 p-4 rounded-2xl border border-slate-700/50">
+          <div class="relative w-full sm:w-96">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+            <input type="text" id="note-search" placeholder="Search notes by topic or keyword..." oninput="filterNotes()" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <span class="text-xs font-semibold text-slate-400">Filter:</span>
+            <select id="course-filter-select" onchange="filterNotes()" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="all">All Courses</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Notes Grid -->
+        <div id="notes-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- VIEW 2: Interactive AI Quiz Arena -->
+      <section id="view-quiz" class="hidden space-y-6">
+        <div class="bg-slate-800/80 rounded-2xl p-6 border border-slate-700/80">
+          <div class="flex items-center justify-between border-b border-slate-700 pb-4 mb-6">
+            <div>
+              <span class="text-xs uppercase font-bold tracking-wider text-indigo-400">AI Quiz Arena</span>
+              <h2 id="quiz-title" class="text-xl font-bold text-slate-100">Loading Quiz...</h2>
+            </div>
+            <button onclick="showView('dashboard')" class="text-sm font-semibold text-slate-400 hover:text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-arrow-left"></i> Back to Notes
+            </button>
+          </div>
+
+          <div id="quiz-container" class="space-y-6">
+            <!-- Questions rendered dynamically -->
+          </div>
+
+          <!-- Quiz Submission / Results Card -->
+          <div id="quiz-result-card" class="hidden text-center p-8 bg-slate-900/80 rounded-2xl border border-indigo-500/30 space-y-4">
+            <div class="inline-flex p-4 rounded-full bg-indigo-500/20 text-indigo-400 text-3xl mb-2">
+              <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-white">Quiz Completed!</h3>
+            <p id="quiz-score-text" class="text-lg text-slate-300 font-semibold"></p>
+            <p id="quiz-time-text" class="text-sm text-slate-400"></p>
+            <div class="pt-4 flex justify-center gap-4">
+              <button onclick="showView('dashboard')" class="px-5 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm transition">
+                Return to Vault
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: 3D Flashcards Mode -->
+      <section id="view-flashcards" class="hidden space-y-6">
+        <div class="bg-slate-800/80 rounded-2xl p-6 border border-slate-700/80 space-y-6">
+          <div class="flex items-center justify-between border-b border-slate-700 pb-4">
+            <div>
+              <span class="text-xs uppercase font-bold tracking-wider text-purple-400">Active Recall Engine</span>
+              <h2 id="flashcard-title" class="text-xl font-bold text-slate-100">Flashcards</h2>
+            </div>
+            <button onclick="showView('dashboard')" class="text-sm font-semibold text-slate-400 hover:text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-arrow-left"></i> Back to Notes
+            </button>
+          </div>
+
+          <!-- Flashcard Viewport -->
+          <div class="flex flex-col items-center justify-center py-6">
+            <div id="flashcard-card" class="flashcard-scene" onclick="flipCard()">
+              <div class="flashcard-inner" id="card-inner">
+                <div class="flashcard-face flashcard-front">
+                  <div class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3">Front (Question / Term)</div>
+                  <div id="card-front-text" class="text-xl font-bold text-slate-100 text-center px-4"></div>
+                  <div class="mt-6 text-xs text-slate-400 flex items-center gap-1">
+                    <i class="fa-solid fa-rotate"></i> Click to flip
+                  </div>
+                </div>
+                <div class="flashcard-face flashcard-back">
+                  <div class="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3">Back (Definition / Solution)</div>
+                  <div id="card-back-text" class="text-base text-slate-200 text-center px-4 leading-relaxed"></div>
+                  <div class="mt-6 text-xs text-slate-400 flex items-center gap-1">
+                    <i class="fa-solid fa-rotate"></i> Click to flip back
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Controls (Next, Prev, Card Counter) -->
+            <div class="flex items-center gap-6 mt-8">
+              <button onclick="prevCard()" class="w-12 h-12 rounded-xl bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <span id="card-counter" class="text-sm font-bold text-slate-400 tracking-wider">1 / 5</span>
+              <button onclick="nextCard()" class="w-12 h-12 rounded-xl bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition">
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: Student Analytics -->
+      <section id="view-analytics" class="hidden space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-slate-800/80 p-5 rounded-2xl border border-slate-700/80 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xl font-bold">
+              <i class="fa-solid fa-book"></i>
+            </div>
+            <div>
+              <div id="stat-courses" class="text-2xl font-black text-white">0</div>
+              <div class="text-xs font-semibold text-slate-400 uppercase">Courses</div>
+            </div>
+          </div>
+          <div class="bg-slate-800/80 p-5 rounded-2xl border border-slate-700/80 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-xl font-bold">
+              <i class="fa-solid fa-file-lines"></i>
+            </div>
+            <div>
+              <div id="stat-notes" class="text-2xl font-black text-white">0</div>
+              <div class="text-xs font-semibold text-slate-400 uppercase">Study Notes</div>
+            </div>
+          </div>
+          <div class="bg-slate-800/80 p-5 rounded-2xl border border-slate-700/80 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl font-bold">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+              <div id="stat-quizzes" class="text-2xl font-black text-white">0</div>
+              <div class="text-xs font-semibold text-slate-400 uppercase">Quizzes Taken</div>
+            </div>
+          </div>
+          <div class="bg-slate-800/80 p-5 rounded-2xl border border-slate-700/80 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl font-bold">
+              <i class="fa-solid fa-percent"></i>
+            </div>
+            <div>
+              <div id="stat-avg" class="text-2xl font-black text-white">0%</div>
+              <div class="text-xs font-semibold text-slate-400 uppercase">Average Mastery</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL 1: Create Course -->
+  <div id="courseModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-md p-6 space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <h3 class="text-lg font-bold text-white">Enroll New Course</h3>
+        <button onclick="closeModal('courseModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="courseForm" onsubmit="handleCreateCourse(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Course Code</label>
+          <input type="text" id="course_code" placeholder="e.g. CS101, PHYS210" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Course Title</label>
+          <input type="text" id="course_title" placeholder="e.g. Operating Systems & Concurrency" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Department</label>
+          <input type="text" id="course_dept" placeholder="e.g. Computer Science" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <div class="pt-2 flex justify-end gap-3">
+          <button type="button" onclick="closeModal('courseModal')" class="px-4 py-2 rounded-xl bg-slate-700 text-slate-300 font-semibold text-sm">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm">Create Course</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Upload / Add Note -->
+  <div id="noteModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-xl p-6 space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <h3 class="text-lg font-bold text-white">Upload Study Note</h3>
+        <button onclick="closeModal('noteModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="noteForm" onsubmit="handleCreateNote(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Select Course</label>
+          <select id="note_course_id" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Note Title</label>
+          <input type="text" id="note_title_input" placeholder="e.g. Virtual Memory & Page Replacement" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Topic / Chapter</label>
+          <input type="text" id="note_topic" placeholder="e.g. Memory Management" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Lecture Notes Content (Markdown / Text)</label>
+          <textarea id="note_content" rows="6" placeholder="Paste your lecture summary, key terms, or definitions..." required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"></textarea>
+        </div>
+        <div class="pt-2 flex justify-end gap-3">
+          <button type="button" onclick="closeModal('noteModal')" class="px-4 py-2 rounded-xl bg-slate-700 text-slate-300 font-semibold text-sm">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm">Save Note</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
