@@ -2,6 +2,8 @@
 FastAPI Server for StudyVault: Course Notes Hub & AI Quiz Generator.
 """
 
+import csv
+import io
 import json
 import math
 import os
@@ -847,6 +849,49 @@ def export_note_anki(note_id: int):
     return Response(
         content=tsv_content,
         media_type="text/tab-separated-values",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@app.get("/api/courses/{course_id}/export/csv")
+def export_course_notes_csv(course_id: int):
+    """Exports course notes summary as tabular CSV file."""
+    conn = get_db_connection()
+    course = conn.execute("SELECT * FROM courses WHERE id = ?;", (course_id,)).fetchone()
+    if not course:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    rows = conn.execute("""
+        SELECT id, title, topic, tags, is_favorite, is_pinned, created_at, content
+        FROM notes
+        WHERE course_id = ?
+        ORDER BY id ASC;
+    """, (course_id,)).fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["id", "course_code", "title", "topic", "tags", "word_count", "favorite", "pinned", "created_at"])
+
+    for r in rows:
+        words = len((r["content"] or "").split())
+        writer.writerow([
+            r["id"],
+            course["code"],
+            r["title"],
+            r["topic"],
+            r["tags"] or "",
+            words,
+            bool(r["is_favorite"]),
+            bool(r["is_pinned"]),
+            str(r["created_at"])
+        ])
+
+    filename = f"{course['code']}_notes_export.csv"
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 
