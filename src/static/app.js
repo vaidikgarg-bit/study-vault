@@ -74,6 +74,26 @@ function processSelectedFile(file) {
   }
 }
 
+function triggerMathRender() {
+  setTimeout(() => {
+    if (window.renderMathInElement) {
+      try {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "$", right: "$", display: false },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "\\[", right: "\\]", display: true }
+          ],
+          throwOnError: false
+        });
+      } catch (e) {
+        console.warn("KaTeX render error:", e);
+      }
+    }
+  }, 50);
+}
+
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
   loadCourses();
@@ -223,6 +243,7 @@ function renderNotes(notes) {
       </div>
     </div>
   `).join("");
+  triggerMathRender();
 }
 
 // Form Handlers
@@ -373,6 +394,7 @@ function renderQuizQuestions() {
       </button>
     </div>
   `;
+  triggerMathRender();
 }
 
 function selectQuizAnswer(qIdx, optIdx) {
@@ -469,6 +491,7 @@ function showCard(index) {
   document.getElementById("card-front-text").innerText = card.front;
   document.getElementById("card-back-text").innerText = card.back;
   document.getElementById("card-counter").innerText = `${currentCardIndex + 1} / ${currentFlashcards.length}`;
+  triggerMathRender();
 }
 
 function flipCard() {
