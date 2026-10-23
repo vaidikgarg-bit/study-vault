@@ -7,11 +7,16 @@ import os
 import sqlite3
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "studyvault.db")
+DEFAULT_DB_PATH = os.path.join(os.path.dirname(__file__), "..", "studyvault.db")
+
+
+def get_db_path() -> str:
+    """Database file location; STUDYVAULT_DB overrides the default."""
+    return os.getenv("STUDYVAULT_DB", DEFAULT_DB_PATH)
 
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(get_db_path())
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
