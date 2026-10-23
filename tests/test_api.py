@@ -574,6 +574,25 @@ def test_pomodoro_session_and_stats():
     assert stats["completed_rate_percent"] >= 50.0
 
 
+def test_csv_exports():
+    courses = client.get("/api/courses").json()
+    cid = courses[0]["id"]
+
+    # 1. Course notes CSV
+    res_notes_csv = client.get(f"/api/courses/{cid}/export/csv")
+    assert res_notes_csv.status_code == 200
+    assert "text/csv" in res_notes_csv.headers["content-type"]
+    assert "course_code" in res_notes_csv.text
+    assert "title" in res_notes_csv.text
+
+    # 2. Quiz attempts CSV
+    res_quiz_csv = client.get("/api/analytics/export/csv")
+    assert res_quiz_csv.status_code == 200
+    assert "text/csv" in res_quiz_csv.headers["content-type"]
+    assert "percentage" in res_quiz_csv.text
+
+
+
 
 
 
