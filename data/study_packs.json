@@ -1,0 +1,41 @@
+{
+  "version": "1.0",
+  "packs": [
+    {
+      "course": {
+        "code": "MATH101",
+        "title": "Single Variable Calculus & Series",
+        "department": "Mathematics",
+        "color": "sky",
+        "instructor": "Prof. Isaac Newton",
+        "term": "Fall 2026"
+      },
+      "notes": [
+        {
+          "title": "Integration by Parts and Taylor Series",
+          "topic": "Calculus & Analysis",
+          "tags": "calculus,integrals,taylor-series",
+          "content": "# Integration by Parts & Series Expansions\n\n## 1. Integration by Parts Formula\nDerived from the product rule of differentiation:\n$$\\int u \\, dv = u v - \\int v \\, du$$\n\n### LIATE Priority Rule for Choosing $u$:\n1. Logarithmic functions ($\ln x$)\n2. Inverse trigonometric functions ($\arctan x$)\n3. Algebraic polynomial powers ($x^2, x^3$)\n4. Trigonometric functions ($\sin x, \cos x$)\n5. Exponential functions ($e^x$)\n\n## 2. Taylor Series Definition\nThe Taylor series expansion of a smooth infinitely differentiable function $f(x)$ centered at $a$ is:\n$$f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!} (x - a)^n$$\n\nWhen $a = 0$, this is termed the Maclaurin Series."
+        }
+      ]
+    },
+    {
+      "course": {
+        "code": "PHYS201",
+        "title": "Classical Mechanics & Dynamics",
+        "department": "Physics",
+        "color": "amber",
+        "instructor": "Dr. Richard Feynman",
+        "term": "Fall 2026"
+      },
+      "notes": [
+        {
+          "title": "Newton's Laws and Conservation of Momentum",
+          "topic": "Newtonian Dynamics",
+          "tags": "physics,mechanics,momentum",
+          "content": "# Newtonian Mechanics & Conservation Principles\n\n## Newton's Three Axioms:\n1. First Law (Inertia): A body remains at rest or in uniform linear motion unless acted upon by a net external force.\n2. Second Law (Force & Acceleration): Force equals the time rate of change of momentum:\n$$\\vec{F}_{net} = \\frac{d\\vec{p}}{dt} = m \\vec{a}$$\n3. Third Law (Action-Reaction): For every action, there is an equal and opposite reaction:\n$$\\vec{F}_{A \\to B} = -\\vec{F}_{B \\to A}$$\n\n## Conservation of Linear Momentum:\nIn an isolated system with no external net forces, total linear momentum is conserved:\n$$\\sum \\vec{p}_{initial} = \\sum \\vec{p}_{final}$$\nElastic collisions conserve both kinetic energy and linear momentum."
+        }
+      ]
+    }
+  ]
+}
