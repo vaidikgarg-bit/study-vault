@@ -552,6 +552,29 @@ def test_flashcard_stability_endpoint():
     assert data["retrievability_percent"] > 0
 
 
+def test_pomodoro_session_and_stats():
+    courses = client.get("/api/courses").json()
+    cid = courses[0]["id"]
+
+    res_log = client.post("/api/pomodoro/sessions", json={
+        "course_id": cid,
+        "work_minutes": 25,
+        "break_minutes": 5,
+        "completed": True,
+        "task_description": "Algorithms Chapter 4"
+    })
+    assert res_log.status_code == 201
+    assert res_log.json()["work_minutes"] == 25
+
+    res_stats = client.get("/api/pomodoro/stats")
+    assert res_stats.status_code == 200
+    stats = res_stats.json()
+    assert stats["total_pomodoros"] >= 1
+    assert stats["total_work_minutes"] >= 25
+    assert stats["completed_rate_percent"] >= 50.0
+
+
+
 
 
 
