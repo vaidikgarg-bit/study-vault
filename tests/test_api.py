@@ -240,3 +240,27 @@ def test_delete_course_removes_its_notes():
 
 def test_delete_missing_course_returns_404():
     assert client.delete("/api/courses/999999").status_code == 404
+
+
+def test_regenerate_bypasses_cached_quiz(monkeypatch):
+    import app as app_module
+    note_id = client.get("/api/notes").json()[0]["id"]
+    client.post(f"/api/notes/{note_id}/quiz")
+
+    calls = []
+    def fake_generate(title, content):
+        calls.append(title)
+        return [{"id": 1, "question": "Fresh?", "options": ["a", "b", "c", "d"],
+                 "correct_index": 0, "explanation": "Regenerated."}]
+    monkeypatch.setattr(app_module, "generate_quiz_from_notes", fake_generate)
+
+    cached = client.post(f"/api/notes/{note_id}/quiz").json()
+    assert calls == []
+    assert cached["questions"][0]["question"] != "Fresh?"
+
+    fresh = client.post(f"/api/notes/{note_id}/quiz?regenerate=true").json()
+    assert len(calls) == 1
+    assert fresh["questions"][0]["question"] == "Fresh?"
+
+    # The regenerated quiz replaces the cached one
+    assert client.post(f"/api/notes/{note_id}/quiz").json()["questions"][0]["question"] == "Fresh?"

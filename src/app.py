@@ -247,15 +247,17 @@ def delete_note(note_id: int):
 # ---------------------------------------------------------------------------
 
 @app.post("/api/notes/{note_id}/quiz", response_model=QuizGenerateResponse)
-def generate_or_get_quiz(note_id: int):
+def generate_or_get_quiz(note_id: int, regenerate: bool = False):
     conn = get_db_connection()
     note = conn.execute("SELECT id, title, content FROM notes WHERE id = ?;", (note_id,)).fetchone()
     if not note:
         conn.close()
         raise HTTPException(status_code=404, detail="Note not found")
 
-    # Check cache
-    cached = conn.execute("SELECT questions_json FROM quizzes WHERE note_id = ?;", (note_id,)).fetchone()
+    # Check cache unless the caller asked for a fresh set
+    cached = None if regenerate else conn.execute(
+        "SELECT questions_json FROM quizzes WHERE note_id = ?;", (note_id,)
+    ).fetchone()
     if cached:
         questions = json.loads(cached["questions_json"])
         conn.close()
@@ -274,15 +276,17 @@ def generate_or_get_quiz(note_id: int):
 
 
 @app.post("/api/notes/{note_id}/flashcards", response_model=FlashcardsResponse)
-def generate_or_get_flashcards(note_id: int):
+def generate_or_get_flashcards(note_id: int, regenerate: bool = False):
     conn = get_db_connection()
     note = conn.execute("SELECT id, title, content FROM notes WHERE id = ?;", (note_id,)).fetchone()
     if not note:
         conn.close()
         raise HTTPException(status_code=404, detail="Note not found")
 
-    # Check cache
-    cached = conn.execute("SELECT cards_json FROM flashcards WHERE note_id = ?;", (note_id,)).fetchone()
+    # Check cache unless the caller asked for a fresh set
+    cached = None if regenerate else conn.execute(
+        "SELECT cards_json FROM flashcards WHERE note_id = ?;", (note_id,)
+    ).fetchone()
     if cached:
         cards = json.loads(cached["cards_json"])
         conn.close()
