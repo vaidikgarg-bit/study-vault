@@ -10,6 +10,70 @@ let quizStartTime = null;
 let currentFlashcards = [];
 let currentCardIndex = 0;
 
+let currentNoteMode = 'manual';
+let selectedPdfFile = null;
+
+function setNoteMode(mode) {
+  currentNoteMode = mode;
+  const manualTab = document.getElementById("tab-manual");
+  const pdfTab = document.getElementById("tab-pdf");
+  const manualSec = document.getElementById("manual-content-section");
+  const pdfSec = document.getElementById("pdf-dropzone-section");
+  const contentInput = document.getElementById("note_content");
+
+  if (mode === 'manual') {
+    manualTab.className = "flex-1 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white transition";
+    pdfTab.className = "flex-1 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition";
+    manualSec.classList.remove("hidden");
+    pdfSec.classList.add("hidden");
+    contentInput.required = true;
+  } else {
+    pdfTab.className = "flex-1 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white transition";
+    manualTab.className = "flex-1 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition";
+    pdfSec.classList.remove("hidden");
+    manualSec.classList.add("hidden");
+    contentInput.required = false;
+  }
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById("pdf-dropzone").classList.add("border-indigo-400", "bg-indigo-950/20");
+}
+
+function handleDragLeave(e) {
+  e.preventDefault();
+  document.getElementById("pdf-dropzone").classList.remove("border-indigo-400", "bg-indigo-950/20");
+}
+
+function handleFileDrop(e) {
+  e.preventDefault();
+  handleDragLeave(e);
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    processSelectedFile(e.dataTransfer.files[0]);
+  }
+}
+
+function handleFileSelected(e) {
+  if (e.target.files && e.target.files[0]) {
+    processSelectedFile(e.target.files[0]);
+  }
+}
+
+function processSelectedFile(file) {
+  if (!file.name.toLowerCase().endsWith(".pdf")) {
+    alert("Please select a valid .pdf file.");
+    return;
+  }
+  selectedPdfFile = file;
+  document.getElementById("pdf-filename-display").innerHTML = `<i class="fa-solid fa-file-pdf text-rose-400 mr-2"></i> ${file.name} (${Math.round(file.size / 1024)} KB)`;
+  // Auto-fill title if empty
+  const titleInput = document.getElementById("note_title_input");
+  if (!titleInput.value) {
+    titleInput.value = file.name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
+  }
+}
+
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
   loadCourses();
@@ -189,22 +253,53 @@ async function handleCreateNote(e) {
   const course_id = parseInt(document.getElementById("note_course_id").value);
   const title = document.getElementById("note_title_input").value;
   const topic = document.getElementById("note_topic").value;
-  const content = document.getElementById("note_content").value;
+  const saveBtn = document.getElementById("save-note-btn");
+
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> Processing...`;
 
   try {
-    const res = await fetch("/api/notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ course_id, title, topic, content })
-    });
-    if (!res.ok) throw new Error("Failed to create note");
+    if (currentNoteMode === 'pdf') {
+      if (!selectedPdfFile) {
+        alert("Please select or drop a PDF file first.");
+        saveBtn.disabled = false;
+        saveBtn.innerText = "Save Note";
+        return;
+      }
+      const formData = new FormData();
+      formData.append("course_id", course_id);
+      formData.append("title", title);
+      formData.append("topic", topic);
+      formData.append("file", selectedPdfFile);
+
+      const res = await fetch("/api/notes/upload-pdf", {
+        method: "POST",
+        body: formData
+      });
+      if (!res.ok) throw new Error("Failed to upload and parse PDF");
+    } else {
+      const content = document.getElementById("note_content").value;
+      const res = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ course_id, title, topic, content })
+      });
+      if (!res.ok) throw new Error("Failed to create note");
+    }
+
     closeModal("noteModal");
     document.getElementById("noteForm").reset();
+    selectedPdfFile = null;
+    document.getElementById("pdf-filename-display").innerHTML = `Drag & drop your PDF slide deck here, or <span class="text-indigo-400 underline">browse</span>`;
+    setNoteMode('manual');
     await loadNotes();
     await loadCourses();
     await loadAnalytics();
   } catch (err) {
     alert("Error saving note: " + err.message);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.innerText = "Save Note";
   }
 }
 

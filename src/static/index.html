@@ -252,9 +252,16 @@
   <div id="noteModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-xl p-6 space-y-5">
       <div class="flex items-center justify-between border-b border-slate-700 pb-3">
-        <h3 class="text-lg font-bold text-white">Upload Study Note</h3>
+        <h3 class="text-lg font-bold text-white">Add Study Note</h3>
         <button onclick="closeModal('noteModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
       </div>
+
+      <!-- Mode Toggle -->
+      <div class="flex rounded-xl bg-slate-900 p-1 border border-slate-700/60">
+        <button type="button" id="tab-manual" onclick="setNoteMode('manual')" class="flex-1 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white transition">Type / Paste Note</button>
+        <button type="button" id="tab-pdf" onclick="setNoteMode('pdf')" class="flex-1 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition">Upload PDF Document</button>
+      </div>
+
       <form id="noteForm" onsubmit="handleCreateNote(event)" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Select Course</label>
@@ -270,13 +277,27 @@
           <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Topic / Chapter</label>
           <input type="text" id="note_topic" placeholder="e.g. Memory Management" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
         </div>
-        <div>
+
+        <!-- Manual Content Section -->
+        <div id="manual-content-section">
           <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Lecture Notes Content (Markdown / Text)</label>
-          <textarea id="note_content" rows="6" placeholder="Paste your lecture summary, key terms, or definitions..." required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"></textarea>
+          <textarea id="note_content" rows="6" placeholder="Paste your lecture summary, key terms, or definitions..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"></textarea>
         </div>
+
+        <!-- PDF Dropzone Section -->
+        <div id="pdf-dropzone-section" class="hidden">
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Lecture Slides / Document (.pdf)</label>
+          <div id="pdf-dropzone" onclick="document.getElementById('pdf-file-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)" class="border-2 border-dashed border-slate-600 hover:border-indigo-500 rounded-2xl p-6 text-center cursor-pointer bg-slate-900/60 transition group">
+            <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-400 group-hover:scale-110 transition mb-2"></i>
+            <p id="pdf-filename-display" class="text-sm font-semibold text-slate-200">Drag & drop your PDF slide deck here, or <span class="text-indigo-400 underline">browse</span></p>
+            <p class="text-xs text-slate-500 mt-1">Automatic text and conceptual slide extraction</p>
+            <input type="file" id="pdf-file-input" accept=".pdf" class="hidden" onchange="handleFileSelected(event)">
+          </div>
+        </div>
+
         <div class="pt-2 flex justify-end gap-3">
           <button type="button" onclick="closeModal('noteModal')" class="px-4 py-2 rounded-xl bg-slate-700 text-slate-300 font-semibold text-sm">Cancel</button>
-          <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm">Save Note</button>
+          <button type="submit" id="save-note-btn" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm">Save Note</button>
         </div>
       </form>
     </div>
