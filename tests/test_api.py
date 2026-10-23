@@ -1,0 +1,149 @@
+"""
+Automated unit and integration test suite for StudyVault API.
+"""
+
+import os
+import sys
+import pytest
+from fastapi.testclient import TestClient
+
+# Add src to module search path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
+
+from app import app
+from database import init_db
+
+# Initialize database
+init_db()
+client = TestClient(app)
+
+
+def test_get_courses():
+    response = client.get("/api/courses")
+    assert response.status_code == 200
+    courses = response.json()
+    assert len(courses) >= 3
+    codes = [c["code"] for c in courses]
+    assert "CS101" in codes
+    assert "MATH200" in codes
+
+
+def test_create_course():
+    import random
+    rnd = random.randint(100, 999)
+    payload = {
+        "code": f"BIO{rnd}",
+        "title": "Molecular Biology & Genetics",
+        "department": "Biological Sciences",
+        "color": "rose"
+    }
+    response = client.post("/api/courses", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["code"] == f"BIO{rnd}"
+    assert data["title"] == "Molecular Biology & Genetics"
+
+
+def test_get_notes():
+    response = client.get("/api/notes")
+    assert response.status_code == 200
+    notes = response.json()
+    assert len(notes) >= 3
+
+
+def test_create_note():
+    # Fetch first course id
+    courses = client.get("/api/courses").json()
+    course_id = courses[0]["id"]
+
+    payload = {
+        "course_id": course_id,
+        "title": "Asymptotic Notations: Big-O, Big-Omega, Big-Theta",
+        "topic": "Algorithm Analysis",
+        "content": """Big-O Notation: Represents the tight mathematical upper bound of an algorithm.
+Big-Omega Notation: Represents the lower bound (best-case scenario).
+Big-Theta Notation: Represents an asymptotically tight bound where both upper and lower bounds coincide.
+Constant Time: O(1) algorithms execute in fixed time regardless of input size."""
+    }
+    response = client.post("/api/notes", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["title"] == payload["title"]
+    assert "id" in data
+
+
+def test_generate_quiz():
+    # Get note id
+    notes = client.get("/api/notes").json()
+    note_id = notes[0]["id"]
+
+    response = client.post(f"/api/notes/{note_id}/quiz")
+    assert response.status_code == 200
+    data = response.json()
+    assert "questions" in data
+    assert len(data["questions"]) >= 1
+
+    q = data["questions"][0]
+    assert "question" in q
+    assert len(q["options"]) == 4
+    assert 0 <= q["correct_index"] < 4
+    assert "explanation" in q
+
+
+def test_generate_flashcards():
+    notes = client.get("/api/notes").json()
+    note_id = notes[0]["id"]
+
+    response = client.post(f"/api/notes/{note_id}/flashcards")
+    assert response.status_code == 200
+    data = response.json()
+    assert "flashcards" in data
+    assert len(data["flashcards"]) >= 1
+
+    card = data["flashcards"][0]
+    assert "front" in card
+    assert "back" in card
+
+
+def test_record_quiz_attempt_and_analytics():
+    notes = client.get("/api/notes").json()
+    note_id = notes[0]["id"]
+
+    payload = {
+        "note_id": note_id,
+        "score": 4,
+        "total_questions": 5,
+        "time_taken_seconds": 45
+    }
+    response = client.post("/api/quiz-attempts", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["score"] == 4
+    assert data["percentage"] == 80.0
+
+    # Verify analytics update
+    analytics_res = client.get("/api/analytics")
+    assert analytics_res.status_code == 200
+    analytics = analytics_res.json()
+    assert analytics["quizzes_taken"] >= 1
+    assert analytics["average_score_percent"] > 0
+
+
+def test_delete_note():
+    # Create temporary note to delete
+    courses = client.get("/api/courses").json()
+    course_id = courses[0]["id"]
+    note_res = client.post("/api/notes", json={
+        "course_id": course_id,
+        "title": "Temporary Note to Delete",
+        "topic": "Test Topic",
+        "content": "This note will be safely deleted in tests."
+    })
+    note_id = note_res.json()["id"]
+
+    del_res = client.delete(f"/api/notes/{note_id}")
+    assert del_res.status_code == 200
+
+    # Ensure it's deleted
+    get_res = client.get(f"/api/notes/{note_id}")
+    assert get_res.status_code == 404
