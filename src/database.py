@@ -1,0 +1,160 @@
+"""
+SQLite Database Layer and seed data initialization for StudyVault.
+"""
+
+import json
+import os
+import sqlite3
+from datetime import datetime
+
+DB_PATH = os.path.join(os.path.dirname(__file__), "..", "studyvault.db")
+
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON;")
+    return conn
+
+
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Courses Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS courses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT NOT NULL UNIQUE,
+        title TEXT NOT NULL,
+        department TEXT NOT NULL,
+        color TEXT DEFAULT 'indigo',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    # Notes Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        course_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        topic TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE
+    );
+    """)
+
+    # Cached Quizzes Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS quizzes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        note_id INTEGER NOT NULL UNIQUE,
+        questions_json TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (note_id) REFERENCES notes (id) ON DELETE CASCADE
+    );
+    """)
+
+    # Cached Flashcards Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS flashcards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        note_id INTEGER NOT NULL UNIQUE,
+        cards_json TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (note_id) REFERENCES notes (id) ON DELETE CASCADE
+    );
+    """)
+
+    # Quiz Attempts & Performance Analytics
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS quiz_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        note_id INTEGER NOT NULL,
+        score INTEGER NOT NULL,
+        total_questions INTEGER NOT NULL,
+        time_taken_seconds INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (note_id) REFERENCES notes (id) ON DELETE CASCADE
+    );
+    """)
+
+    # Check if we should seed default student courses
+    cursor.execute("SELECT COUNT(*) FROM courses;")
+    if cursor.fetchone()[0] == 0:
+        _seed_default_data(cursor)
+
+    conn.commit()
+    conn.close()
+
+
+def _seed_default_data(cursor):
+    courses = [
+        ("CS101", "Data Structures & Algorithms", "Computer Science", "indigo"),
+        ("MATH200", "Discrete Mathematics & Logic", "Mathematics", "emerald"),
+        ("EE102", "Digital Systems & Computer Architecture", "Electrical Engineering", "amber")
+    ]
+    cursor.executemany("INSERT INTO courses (code, title, department, color) VALUES (?, ?, ?, ?);", courses)
+
+    notes = [
+        (
+            1,
+            "Binary Search Trees & Traversal Algorithms",
+            "Trees & Hierarchies",
+            """A Binary Search Tree (BST) is a hierarchical node-based data structure where each node has at most two children.
+Key Invariant:
+For any given node N:
+1. Every key in N's left subtree is strictly less than N.key.
+2. Every key in N's right subtree is strictly greater than N.key.
+
+Time Complexities:
+- Search: O(log N) average, O(N) worst case (skewed / unbalanced tree).
+- Insertion: O(log N) average, O(N) worst case.
+- Deletion: O(log N) average, O(N) worst case.
+
+Tree Traversal Techniques:
+1. In-Order (Left, Root, Right): Visits nodes in non-decreasing sorted order.
+2. Pre-Order (Root, Left, Right): Useful for cloning or serializing a tree structure.
+3. Post-Order (Left, Right, Root): Useful for deleting trees or calculating bottom-up attributes (like height).
+4. Level-Order (Breadth-First): Traverses level by level using a Queue (FIFO).
+
+Self-Balancing Trees:
+To prevent worst-case O(N) degeneration, self-balancing BSTs like AVL trees and Red-Black trees perform tree rotations to guarantee O(log N) height."""
+        ),
+        (
+            1,
+            "Graph Representations & Dijkstra's Algorithm",
+            "Graph Theory",
+            """Graphs G = (V, E) consist of a set of vertices V and edges E.
+Representations:
+1. Adjacency Matrix: V x V 2D array. Fast edge lookup O(1), but consumes O(V^2) space.
+2. Adjacency List: Array or hash map of lists. Space efficient O(V + E), optimal for sparse graphs.
+
+Dijkstra's Shortest Path Algorithm:
+- Finds the shortest path from a single source vertex to all other vertices in a weighted graph with non-negative edge weights.
+- Employs a Greedy Strategy using a Min-Priority Queue (Binary Heap).
+- Time Complexity with Min-Heap: O((V + E) log V).
+- Critical Limitation: Fails on graphs with negative edge weights (Bellman-Ford algorithm must be used instead)."""
+        ),
+        (
+            2,
+            "Propositional Logic & Truth Tables",
+            "Formal Logic",
+            """Propositional logic studies declarative statements that evaluate to either True (T) or False (F).
+Core Logical Connectives:
+1. Conjunction (AND, P ∧ Q): True only if both P and Q are True.
+2. Disjunction (OR, P ∨ Q): True if at least one proposition is True.
+3. Negation (NOT, ¬P): Inverts truth value.
+4. Implication (IF-THEN, P → Q): Equivalent to (¬P ∨ Q). False ONLY when P is True and Q is False!
+5. Biconditional (IFF, P ↔ Q): True when P and Q share identical truth values.
+
+Important Equivalences:
+- De Morgan's Laws:
+  ¬(P ∧ Q) ≡ (¬P ∨ ¬Q)
+  ¬(P ∨ Q) ≡ (¬P ∧ ¬Q)
+- Contrapositive: (P → Q) is logically equivalent to (¬Q → ¬P)."""
+        )
+    ]
+    cursor.executemany("INSERT INTO notes (course_id, title, topic, content) VALUES (?, ?, ?, ?);", notes)
