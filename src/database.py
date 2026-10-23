@@ -152,6 +152,21 @@ def init_db():
     );
     """)
 
+    # Pomodoro Sessions Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS pomodoro_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        course_id INTEGER NOT NULL,
+        work_minutes INTEGER DEFAULT 25,
+        break_minutes INTEGER DEFAULT 5,
+        completed INTEGER DEFAULT 1,
+        task_description TEXT DEFAULT '',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE
+    );
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_pomodoro_course ON pomodoro_sessions(course_id);")
+
     # Performance Indices
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_course_id ON notes(course_id);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_favorite ON notes(is_favorite);")
