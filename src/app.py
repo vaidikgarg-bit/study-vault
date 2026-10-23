@@ -4,6 +4,11 @@ FastAPI Server for StudyVault: Course Notes Hub & AI Quiz Generator.
 
 import json
 import os
+import sys
+
+# Ensure src/ directory is on module search path when imported by uvicorn
+sys.path.insert(0, os.path.dirname(__file__))
+
 from typing import List
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
