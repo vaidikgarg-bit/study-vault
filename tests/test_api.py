@@ -148,6 +148,21 @@ def test_record_quiz_attempt_and_analytics():
     assert analytics["average_score_percent"] > 0
 
 
+def test_analytics_counts_generated_flashcards():
+    before = client.get("/api/analytics").json()["total_flashcards"]
+    note_res = client.post("/api/notes", json={
+        "course_id": client.get("/api/courses").json()[0]["id"],
+        "title": "Hash Tables",
+        "topic": "Hashing",
+        "content": "Load Factor: number of stored entries divided by bucket count.\nChaining: each bucket holds a linked list of colliding entries."
+    })
+    note_id = note_res.json()["id"]
+    cards = client.post(f"/api/notes/{note_id}/flashcards").json()["flashcards"]
+
+    after = client.get("/api/analytics").json()["total_flashcards"]
+    assert after - before == len(cards)
+
+
 @pytest.mark.parametrize("score, total, seconds", [
     (6, 5, 30),   # score above total
     (-1, 5, 30),  # negative score

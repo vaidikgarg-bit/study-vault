@@ -346,7 +346,9 @@ def get_analytics():
     avg_score_raw = attempts["avg_score"] or 0.0
     avg_score_percent = round(avg_score_raw * 100, 1)
 
-    cards_count = conn.execute("SELECT COUNT(*) FROM flashcards;").fetchone()[0]
+    total_flashcards = conn.execute(
+        "SELECT COALESCE(SUM(json_array_length(cards_json)), 0) FROM flashcards;"
+    ).fetchone()[0]
     conn.close()
 
     return {
@@ -354,5 +356,5 @@ def get_analytics():
         "total_notes": total_notes,
         "quizzes_taken": quizzes_taken,
         "average_score_percent": avg_score_percent,
-        "total_flashcards_reviewed": cards_count * 6  # Estimated reviewed
+        "total_flashcards": total_flashcards
     }

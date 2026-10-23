@@ -88,4 +88,4 @@ class AnalyticsResponse(BaseModel):
     total_notes: int
     quizzes_taken: int
     average_score_percent: float
-    total_flashcards_reviewed: int
+    total_flashcards: int
