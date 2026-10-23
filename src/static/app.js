@@ -91,6 +91,9 @@ function triggerMathRender() {
         console.warn("KaTeX render error:", e);
       }
     }
+    if (window.Prism) {
+      Prism.highlightAll();
+    }
   }, 50);
 }
 
