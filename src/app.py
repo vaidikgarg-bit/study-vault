@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from database import init_db, get_db_connection
-from pdf_parser import extract_text_from_pdf_bytes
+from pdf_parser import extract_text_from_pdf_bytes, InvalidPdfError
 from spaced_repetition import calculate_sm2
 from models import (
     CourseCreate, CourseResponse,
@@ -188,7 +188,10 @@ async def upload_pdf_note(
         raise HTTPException(status_code=400, detail="Only PDF files (.pdf) are supported")
 
     content_bytes = await file.read()
-    parsed = extract_text_from_pdf_bytes(content_bytes)
+    try:
+        parsed = extract_text_from_pdf_bytes(content_bytes)
+    except InvalidPdfError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     conn = get_db_connection()
     course = conn.execute("SELECT code, title FROM courses WHERE id = ?;", (course_id,)).fetchone()

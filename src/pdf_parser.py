@@ -6,13 +6,23 @@ Extracts structured text and metadata from lecture slides and course documents.
 import io
 from typing import Dict, Any
 from pypdf import PdfReader, PdfWriter
+from pypdf.errors import PdfReadError
+
+
+class InvalidPdfError(ValueError):
+    """Raised when uploaded bytes are empty or not a readable PDF."""
 
 
 def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> Dict[str, Any]:
     """
     Parses a PDF file from bytes and extracts all clean text along with page metadata.
     """
-    reader = PdfReader(io.BytesIO(pdf_bytes))
+    if not pdf_bytes:
+        raise InvalidPdfError("Uploaded file is empty")
+    try:
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+    except PdfReadError as e:
+        raise InvalidPdfError(f"Could not read PDF: {e}") from e
     page_count = len(reader.pages)
     extracted_pages = []
 

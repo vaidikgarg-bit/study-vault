@@ -91,6 +91,15 @@ def test_upload_pdf_note():
     assert "id" in res_data
 
 
+@pytest.mark.parametrize("body", [b"", b"plain text pretending to be a pdf"])
+def test_upload_pdf_rejects_unreadable_file(body):
+    course_id = client.get("/api/courses").json()[0]["id"]
+    files = {"file": ("broken.pdf", body, "application/pdf")}
+    data = {"course_id": str(course_id), "title": "Broken Upload", "topic": "Errors"}
+    response = client.post("/api/notes/upload-pdf", data=data, files=files)
+    assert response.status_code == 400
+
+
 def test_generate_quiz():
     # Get note id
     notes = client.get("/api/notes").json()
