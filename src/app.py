@@ -50,7 +50,8 @@ from models import (
     NoteHistoryResponse, NoteRevertResponse,
     FlashcardImportRequest, FlashcardImportResponse,
     StudySessionSummary, CourseFocusStats,
-    SearchResultResponse, ScoredNoteItem
+    SearchResultResponse, ScoredNoteItem,
+    PomodoroSessionCreate, PomodoroSessionResponse, PomodoroStats
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -1298,6 +1299,29 @@ def log_study_session(session: StudySessionCreate):
     conn.commit()
     conn.close()
     return {"id": row["id"], "course_id": session.course_id, "duration_minutes": session.duration_minutes, "session_type": session.session_type}
+
+
+@app.post("/api/pomodoro/sessions", response_model=PomodoroSessionResponse, status_code=status.HTTP_201_CREATED, tags=["Analytics"])
+def log_pomodoro_session(pomo: PomodoroSessionCreate):
+    """Logs a completed or attempted Pomodoro study work/break interval."""
+    conn = get_db_connection()
+    cursor = conn.execute("""
+        INSERT INTO pomodoro_sessions (course_id, work_minutes, break_minutes, completed, task_description)
+        VALUES (?, ?, ?, ?, ?) RETURNING id, created_at;
+    """, (pomo.course_id, pomo.work_minutes, pomo.break_minutes, int(pomo.completed), pomo.task_description or ""))
+    row = cursor.fetchone()
+    conn.commit()
+    conn.close()
+
+    return {
+        "id": row["id"],
+        "course_id": pomo.course_id,
+        "work_minutes": pomo.work_minutes,
+        "break_minutes": pomo.break_minutes,
+        "completed": pomo.completed,
+        "task_description": pomo.task_description or "",
+        "created_at": str(row["created_at"])
+    }
 
 
 @app.get("/api/study-sessions/stats", response_model=StudySessionSummary, tags=["Analytics"])
