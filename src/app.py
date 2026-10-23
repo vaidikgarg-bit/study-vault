@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 
 from database import init_db, get_db_connection
 from pdf_parser import extract_text_from_pdf_bytes
+from spaced_repetition import calculate_sm2
 from models import (
     CourseCreate, CourseResponse,
     NoteCreate, NoteResponse,
@@ -283,6 +284,19 @@ def generate_or_get_flashcards(note_id: int):
     conn.close()
 
     return {"note_id": note_id, "note_title": note["title"], "flashcards": cards}
+
+
+@app.post("/api/flashcards/review")
+def review_flashcard_sm2(
+    rating: int,
+    repetitions: int = 0,
+    ease_factor: float = 2.5,
+    interval_days: int = 1
+):
+    """Calculates next review schedule using the SuperMemo-2 (SM-2) algorithm."""
+    if not (1 <= rating <= 4):
+        raise HTTPException(status_code=400, detail="Rating must be between 1 (Again) and 4 (Easy)")
+    return calculate_sm2(rating, repetitions, ease_factor, interval_days)
 
 
 # ---------------------------------------------------------------------------
