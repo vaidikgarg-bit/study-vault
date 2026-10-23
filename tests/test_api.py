@@ -72,6 +72,25 @@ Constant Time: O(1) algorithms execute in fixed time regardless of input size.""
     assert "id" in data
 
 
+def test_upload_pdf_note():
+    from pdf_parser import create_sample_pdf_bytes
+    courses = client.get("/api/courses").json()
+    course_id = courses[0]["id"]
+    pdf_bytes = create_sample_pdf_bytes("Slide Deck", "Operating Systems Overview")
+
+    files = {"file": ("lecture1.pdf", pdf_bytes, "application/pdf")}
+    data = {
+        "course_id": str(course_id),
+        "title": "Operating Systems Virtual Memory Slide Deck",
+        "topic": "Virtual Memory"
+    }
+    response = client.post("/api/notes/upload-pdf", data=data, files=files)
+    assert response.status_code == 201
+    res_data = response.json()
+    assert res_data["title"] == data["title"]
+    assert "id" in res_data
+
+
 def test_generate_quiz():
     # Get note id
     notes = client.get("/api/notes").json()

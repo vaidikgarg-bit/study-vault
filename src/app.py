@@ -10,12 +10,13 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 from typing import List
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from database import init_db, get_db_connection
+from pdf_parser import extract_text_from_pdf_bytes
 from models import (
     CourseCreate, CourseResponse,
     NoteCreate, NoteResponse,
@@ -171,6 +172,46 @@ def create_note(note: NoteCreate):
         "title": note.title.strip(),
         "topic": note.topic.strip(),
         "content": note.content.strip(),
+        "created_at": str(created_at)
+    }
+
+
+@app.post("/api/notes/upload-pdf", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
+async def upload_pdf_note(
+    course_id: int = Form(...),
+    title: str = Form(...),
+    topic: str = Form(...),
+    file: UploadFile = File(...)
+):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files (.pdf) are supported")
+
+    content_bytes = await file.read()
+    parsed = extract_text_from_pdf_bytes(content_bytes)
+
+    conn = get_db_connection()
+    course = conn.execute("SELECT code, title FROM courses WHERE id = ?;", (course_id,)).fetchone()
+    if not course:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    cursor = conn.execute(
+        "INSERT INTO notes (course_id, title, topic, content) VALUES (?, ?, ?, ?) RETURNING id, created_at;",
+        (course_id, title.strip(), topic.strip(), parsed["content"])
+    )
+    row = cursor.fetchone()
+    conn.commit()
+    note_id, created_at = row["id"], row["created_at"]
+    conn.close()
+
+    return {
+        "id": note_id,
+        "course_id": course_id,
+        "course_code": course["code"],
+        "course_title": course["title"],
+        "title": title.strip(),
+        "topic": topic.strip(),
+        "content": parsed["content"],
         "created_at": str(created_at)
     }
 
