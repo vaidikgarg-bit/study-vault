@@ -3,7 +3,7 @@ Pydantic data schemas for StudyVault API.
 """
 
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class CourseCreate(BaseModel):
@@ -66,9 +66,15 @@ class FlashcardsResponse(BaseModel):
 
 class QuizAttemptCreate(BaseModel):
     note_id: int
-    score: int
-    total_questions: int
-    time_taken_seconds: int
+    score: int = Field(..., ge=0)
+    total_questions: int = Field(..., ge=1)
+    time_taken_seconds: int = Field(..., ge=0)
+
+    @model_validator(mode="after")
+    def score_within_total(self):
+        if self.score > self.total_questions:
+            raise ValueError("score cannot exceed total_questions")
+        return self
 
 
 class QuizAttemptResponse(QuizAttemptCreate):

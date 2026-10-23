@@ -148,6 +148,23 @@ def test_record_quiz_attempt_and_analytics():
     assert analytics["average_score_percent"] > 0
 
 
+@pytest.mark.parametrize("score, total, seconds", [
+    (6, 5, 30),   # score above total
+    (-1, 5, 30),  # negative score
+    (0, 0, 30),   # zero questions
+    (3, 5, -10),  # negative time
+])
+def test_record_quiz_attempt_rejects_invalid_values(score, total, seconds):
+    note_id = client.get("/api/notes").json()[0]["id"]
+    response = client.post("/api/quiz-attempts", json={
+        "note_id": note_id,
+        "score": score,
+        "total_questions": total,
+        "time_taken_seconds": seconds
+    })
+    assert response.status_code == 422
+
+
 def test_delete_note():
     # Create temporary note to delete
     courses = client.get("/api/courses").json()
