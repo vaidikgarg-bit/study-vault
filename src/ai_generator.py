@@ -377,3 +377,40 @@ Return ONLY valid JSON array with no extra markdown or text."""
         data = res.json()
         raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
         return json.loads(raw_text)
+
+
+def calculate_readability_score(text: str) -> dict:
+    """
+    Calculates reading ease and grade level based on the Flesch-Kincaid index.
+    Formula: 206.835 - 1.015 * (words / sentences) - 84.6 * (syllables / words)
+    """
+    if not text or not text.strip():
+        return {"score": 100.0, "grade": "Easy", "level": "Elementary"}
+
+    words = [w for w in re.findall(r"\b[A-Za-z]+\b", text)]
+    if not words:
+        return {"score": 100.0, "grade": "Easy", "level": "Elementary"}
+
+    sentences = [s for s in re.split(r"[.!?]+", text) if s.strip()]
+    num_sentences = max(1, len(sentences))
+    num_words = len(words)
+
+    # Approximate syllable count (vowel clusters)
+    syllable_count = 0
+    for w in words:
+        syl = len(re.findall(r"[aeiouy]+", w.lower()))
+        syllable_count += max(1, syl)
+
+    score = 206.835 - 1.015 * (num_words / num_sentences) - 84.6 * (syllable_count / num_words)
+    clamped = round(max(0.0, min(100.0, score)), 1)
+
+    if clamped >= 80:
+        level = "Elementary"
+    elif clamped >= 60:
+        level = "Intermediate"
+    elif clamped >= 40:
+        level = "College"
+    else:
+        level = "Advanced Academic"
+
+    return {"score": clamped, "level": level}
