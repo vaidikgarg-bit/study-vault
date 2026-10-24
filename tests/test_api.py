@@ -367,3 +367,14 @@ def test_pin_note_and_ordering():
     res2 = client.post(f"/api/notes/{note_id}/pin")
     assert res2.status_code == 200
     assert res2.json()["is_pinned"] is False
+
+
+def test_bulk_delete_notes():
+    courses = client.get("/api/courses").json()
+    course_id = courses[0]["id"]
+    n1 = client.post("/api/notes", json={"course_id": course_id, "title": "Bulk 1", "topic": "T", "content": "C"}).json()
+    n2 = client.post("/api/notes", json={"course_id": course_id, "title": "Bulk 2", "topic": "T", "content": "C"}).json()
+
+    res = client.request("DELETE", "/api/notes/bulk", json={"note_ids": [n1["id"], n2["id"]]})
+    assert res.status_code == 200
+    assert res.json()["deleted_count"] == 2
