@@ -72,6 +72,12 @@ def init_db():
         cursor.execute("ALTER TABLE notes ADD COLUMN tags TEXT DEFAULT '';")
     if "is_pinned" not in columns:
         cursor.execute("ALTER TABLE notes ADD COLUMN is_pinned INTEGER DEFAULT 0;")
+    cursor.execute("PRAGMA table_info(courses);")
+    c_cols = [c[1] for c in cursor.fetchall()]
+    if "instructor" not in c_cols:
+        cursor.execute("ALTER TABLE courses ADD COLUMN instructor TEXT DEFAULT '';")
+    if "term" not in c_cols:
+        cursor.execute("ALTER TABLE courses ADD COLUMN term TEXT DEFAULT 'Fall 2026';")
 
     # Cached Quizzes Table
     cursor.execute("""
