@@ -10,10 +10,24 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 
 from ai_generator import (
     extract_key_concepts,
+    extract_bullet_summary,
     generate_cloze_flashcards,
     generate_quiz_from_notes,
     generate_flashcards_from_notes
 )
+
+
+def test_extract_bullet_summary():
+    text = """
+    A Binary Search Tree is a hierarchical structure.
+    - Search: Takes O(log N) average time.
+    - Insertion: Takes O(log N) average time.
+    - Deletion: Takes O(log N) average time.
+    """
+    bullets = extract_bullet_summary(text, max_bullets=3)
+    assert len(bullets) == 3
+    assert any("Search" in b for b in bullets)
+    assert extract_bullet_summary("") == []
 
 
 def test_extract_key_concepts_empty():

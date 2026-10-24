@@ -65,6 +65,44 @@ def extract_key_concepts(text: str, max_terms: int = 8) -> List[Dict[str, Any]]:
     ]
 
 
+def extract_bullet_summary(text: str, max_bullets: int = 4) -> List[str]:
+    """
+    Extracts core summary bullet takeaways from study text using sentence ranking.
+    Prioritizes definition statements, complexity notation, and theorem invariants.
+    """
+    if not text:
+        return []
+
+    bullets = []
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+
+    # Priority 1: Definitions and numbered lists
+    for line in lines:
+        if line.startswith(("-", "*", "•")) or re.match(r"^\d+\.", line):
+            cleaned = re.sub(r"^[-*•\d\.]+\s*", "", line).strip()
+            if len(cleaned) > 15 and cleaned not in bullets:
+                bullets.append(cleaned)
+        elif ":" in line and not line.lower().startswith("note:"):
+            parts = line.split(":", 1)
+            if len(parts[0]) < 40 and len(parts[1].strip()) > 15:
+                bullets.append(line)
+
+        if len(bullets) >= max_bullets:
+            break
+
+    # Priority 2: Fallback to sentences if list items were scarce
+    if len(bullets) < max_bullets:
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+        for s in sentences:
+            s_clean = s.strip()
+            if len(s_clean) > 25 and s_clean not in bullets:
+                bullets.append(s_clean)
+            if len(bullets) >= max_bullets:
+                break
+
+    return bullets[:max_bullets]
+
+
 def generate_quiz_from_notes(note_title: str, note_content: str) -> List[Dict[str, Any]]:
     """Generates structured multiple-choice questions from study notes."""
     api_key = os.getenv("GEMINI_API_KEY")
