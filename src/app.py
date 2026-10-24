@@ -34,7 +34,8 @@ from ai_generator import (
     generate_flashcards_from_notes,
     generate_cloze_flashcards,
     extract_key_concepts,
-    extract_bullet_summary
+    extract_bullet_summary,
+    calculate_readability_score
 )
 
 # Initialize DB tables on startup
@@ -228,6 +229,7 @@ def enrich_note_dict(row_dict: dict) -> dict:
     d = dict(row_dict)
     d["word_count"] = words
     d["reading_time_mins"] = reading_time
+    d["readability_score"] = calculate_readability_score(content)["score"]
     return d
 
 
