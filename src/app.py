@@ -27,7 +27,8 @@ from models import (
     NoteCreate, NoteResponse, NoteUpdate, FavoriteToggleResponse,
     QuizGenerateResponse, FlashcardsResponse,
     QuizAttemptCreate, QuizAttemptResponse,
-    AnalyticsResponse, HealthResponse
+    AnalyticsResponse, HealthResponse,
+    BulkDeleteRequest, BulkDeleteResponse
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -598,6 +599,20 @@ def export_note_txt(note_id: int):
         media_type="text/plain",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
+
+
+@app.delete("/api/notes/bulk", response_model=BulkDeleteResponse)
+def delete_notes_bulk(req: BulkDeleteRequest):
+    """Deletes multiple notes in a single batch transaction."""
+    if not req.note_ids:
+        return {"deleted_count": 0, "deleted_ids": []}
+    conn = get_db_connection()
+    placeholders = ",".join("?" for _ in req.note_ids)
+    cursor = conn.execute(f"DELETE FROM notes WHERE id IN ({placeholders});", req.note_ids)
+    conn.commit()
+    count = cursor.rowcount
+    conn.close()
+    return {"deleted_count": count, "deleted_ids": req.note_ids}
 
 
 @app.delete("/api/notes/{note_id}")
