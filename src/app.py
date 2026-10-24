@@ -113,8 +113,8 @@ def create_course(course: CourseCreate):
     conn = get_db_connection()
     try:
         cursor = conn.execute(
-            "INSERT INTO courses (code, title, department, color) VALUES (?, ?, ?, ?) RETURNING id, created_at;",
-            (course.code.upper().strip(), course.title.strip(), course.department.strip(), course.color or "indigo")
+            "INSERT INTO courses (code, title, department, color, instructor, term) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, created_at;",
+            (course.code.upper().strip(), course.title.strip(), course.department.strip(), course.color or "indigo", course.instructor or "", course.term or "Fall 2026")
         )
         row = cursor.fetchone()
         conn.commit()
@@ -129,6 +129,8 @@ def create_course(course: CourseCreate):
         "title": course.title.strip(),
         "department": course.department.strip(),
         "color": course.color or "indigo",
+        "instructor": course.instructor or "",
+        "term": course.term or "Fall 2026",
         "note_count": 0,
         "created_at": str(created_at)
     }
