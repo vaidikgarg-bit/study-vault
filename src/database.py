@@ -5,6 +5,7 @@ SQLite Database Layer and seed data initialization for StudyVault.
 import json
 import os
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime
 
 from config import DB_PATH
@@ -15,6 +16,20 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
+
+
+@contextmanager
+def get_db_ctx():
+    """Context manager for SQLite connections ensuring clean auto-commit and closure."""
+    conn = get_db_connection()
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def init_db():
