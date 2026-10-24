@@ -51,6 +51,7 @@ class NoteResponse(NoteCreate):
     tags: str = ""
     word_count: int = 0
     reading_time_mins: int = 1
+    readability_score: float = 75.0
     created_at: str
 
 
