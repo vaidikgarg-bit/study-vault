@@ -39,6 +39,7 @@ class NoteUpdate(BaseModel):
     content: Optional[str] = None
     tags: Optional[str] = None
     is_favorite: Optional[bool] = None
+    is_pinned: Optional[bool] = None
 
 
 class NoteResponse(NoteCreate):
@@ -46,6 +47,7 @@ class NoteResponse(NoteCreate):
     course_code: str
     course_title: str
     is_favorite: bool = False
+    is_pinned: bool = False
     tags: str = ""
     word_count: int = 0
     reading_time_mins: int = 1
