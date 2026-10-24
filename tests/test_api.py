@@ -36,6 +36,15 @@ def test_get_courses():
     assert "CS101" in codes
     assert "MATH200" in codes
 
+    # Test course stats
+    first_id = courses[0]["id"]
+    stats_res = client.get(f"/api/courses/{first_id}/stats")
+    assert stats_res.status_code == 200
+    stats = stats_res.json()
+    assert "total_notes" in stats
+    assert "total_words" in stats
+    assert "unique_topics" in stats
+
 
 def test_create_course():
     import random

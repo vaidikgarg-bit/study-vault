@@ -176,6 +176,45 @@ def delete_course(course_id: int):
     return {"message": "Course deleted successfully"}
 
 
+@app.get("/api/courses/{course_id}/stats")
+def get_course_stats(course_id: int):
+    """Calculates comprehensive learning and content statistics for a course."""
+    conn = get_db_connection()
+    course = conn.execute("SELECT * FROM courses WHERE id = ?;", (course_id,)).fetchone()
+    if not course:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    notes = conn.execute("SELECT id, topic, content FROM notes WHERE course_id = ?;", (course_id,)).fetchall()
+    topics = sorted(list(set(n["topic"] for n in notes)))
+
+    total_words = sum(len(n["content"].split()) for n in notes)
+    est_reading_time = max(1, math.ceil(total_words / 200))
+
+    note_ids = [n["id"] for n in notes]
+    quiz_attempts_count = 0
+    if note_ids:
+        placeholders = ",".join("?" for _ in note_ids)
+        row = conn.execute(
+            f"SELECT COUNT(*) FROM quiz_attempts WHERE note_id IN ({placeholders});",
+            note_ids
+        ).fetchone()
+        quiz_attempts_count = row[0]
+
+    conn.close()
+
+    return {
+        "course_id": course_id,
+        "code": course["code"],
+        "title": course["title"],
+        "total_notes": len(notes),
+        "total_words": total_words,
+        "estimated_reading_time_mins": est_reading_time,
+        "unique_topics": topics,
+        "quiz_attempts_taken": quiz_attempts_count
+    }
+
+
 # ---------------------------------------------------------------------------
 # Notes Endpoints
 # ---------------------------------------------------------------------------
