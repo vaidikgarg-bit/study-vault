@@ -351,3 +351,19 @@ def test_delete_note():
     # Ensure it's deleted
     get_res = client.get(f"/api/notes/{note_id}")
     assert get_res.status_code == 404
+
+
+def test_pin_note_and_ordering():
+    notes = client.get("/api/notes").json()
+    note_id = notes[0]["id"]
+    res1 = client.post(f"/api/notes/{note_id}/pin")
+    assert res1.status_code == 200
+    assert res1.json()["is_pinned"] is True
+    # Verify pinned note is first
+    ordered = client.get("/api/notes").json()
+    assert ordered[0]["id"] == note_id
+    assert ordered[0]["is_pinned"] is True
+    # Unpin
+    res2 = client.post(f"/api/notes/{note_id}/pin")
+    assert res2.status_code == 200
+    assert res2.json()["is_pinned"] is False
