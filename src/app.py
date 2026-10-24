@@ -474,6 +474,21 @@ def toggle_note_favorite(note_id: int):
     }
 
 
+@app.post("/api/notes/{note_id}/pin")
+def toggle_note_pin(note_id: int):
+    """Toggles pinned/sticky status for a study note."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id, is_pinned FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    if not note:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Note not found")
+    new_status = 0 if note["is_pinned"] else 1
+    conn.execute("UPDATE notes SET is_pinned = ? WHERE id = ?;", (new_status, note_id))
+    conn.commit()
+    conn.close()
+    return {"id": note_id, "is_pinned": bool(new_status)}
+
+
 @app.get("/api/notes/{note_id}/export/markdown")
 def export_note_markdown(note_id: int):
     """Exports note as formatted Markdown file."""
