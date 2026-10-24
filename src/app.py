@@ -32,7 +32,8 @@ from ai_generator import (
     generate_quiz_from_notes,
     generate_flashcards_from_notes,
     generate_cloze_flashcards,
-    extract_key_concepts
+    extract_key_concepts,
+    extract_bullet_summary
 )
 
 # Initialize DB tables on startup
@@ -486,6 +487,24 @@ def delete_note(note_id: int):
     if cursor.rowcount == 0:
         raise HTTPException(status_code=404, detail="Note not found")
     return {"message": "Note deleted successfully"}
+
+
+@app.get("/api/notes/{note_id}/summary")
+def get_note_summary(note_id: int):
+    """Generates concise executive bullet summaries from note contents."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id, title, content FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    conn.close()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    bullets = extract_bullet_summary(note["content"])
+    return {
+        "note_id": note_id,
+        "title": note["title"],
+        "bullet_count": len(bullets),
+        "summary_bullets": bullets
+    }
 
 
 @app.get("/api/notes/{note_id}/concepts")

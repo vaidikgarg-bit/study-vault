@@ -164,6 +164,16 @@ def test_export_note_markdown_and_json():
     assert "course" in data
 
 
+def test_note_summary():
+    notes = client.get("/api/notes").json()
+    note_id = notes[0]["id"]
+    res = client.get(f"/api/notes/{note_id}/summary")
+    assert res.status_code == 200
+    data = res.json()
+    assert "summary_bullets" in data
+    assert len(data["summary_bullets"]) > 0
+
+
 def test_get_note_concepts():
     notes = client.get("/api/notes").json()
     note_id = notes[0]["id"]
