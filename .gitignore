@@ -14,6 +14,7 @@ env/
 *.db
 *.sqlite3
 studyvault.db
+backups/
 
 # Environment variables
 .env
