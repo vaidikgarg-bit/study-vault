@@ -47,6 +47,8 @@ class NoteResponse(NoteCreate):
     course_title: str
     is_favorite: bool = False
     tags: str = ""
+    word_count: int = 0
+    reading_time_mins: int = 1
     created_at: str
 
 
