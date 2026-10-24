@@ -11,6 +11,8 @@ class CourseCreate(BaseModel):
     title: str = Field(..., json_schema_extra={"example": "Introduction to Computer Science"})
     department: str = Field(..., json_schema_extra={"example": "Computer Science"})
     color: Optional[str] = Field(default="indigo", json_schema_extra={"example": "indigo"})
+    instructor: Optional[str] = Field(default="", json_schema_extra={"example": "Dr. Alan Turing"})
+    term: Optional[str] = Field(default="Fall 2026", json_schema_extra={"example": "Fall 2026"})
 
 
 class CourseUpdate(BaseModel):
