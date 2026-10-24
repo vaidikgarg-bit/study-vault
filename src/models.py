@@ -119,3 +119,12 @@ class HealthResponse(BaseModel):
     version: str
     database: str
     timestamp: str
+
+
+class BulkDeleteRequest(BaseModel):
+    note_ids: List[int]
+
+
+class BulkDeleteResponse(BaseModel):
+    deleted_count: int
+    deleted_ids: List[int]
