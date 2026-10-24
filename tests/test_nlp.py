@@ -73,3 +73,17 @@ def test_generate_cloze_flashcards_fallbacks():
     cloze_cards = generate_cloze_flashcards("Compilers", text, max_cards=3)
     assert len(cloze_cards) >= 1
     assert "[ ... ]" in cloze_cards[0]["front"]
+
+
+def test_calculate_readability_score():
+    simple = "The cat sat on the mat. The sun was hot."
+    res_simple = calculate_readability_score(simple)
+    assert res_simple["score"] >= 80.0
+    assert res_simple["level"] == "Elementary"
+
+    complex_txt = "Epistemological hermeneutics delineates ontological preconceptions within phenomenological discourse."
+    res_complex = calculate_readability_score(complex_txt)
+    assert res_complex["score"] < 40.0
+    assert res_complex["level"] == "Advanced Academic"
+
+    assert calculate_readability_score("")["score"] == 100.0
