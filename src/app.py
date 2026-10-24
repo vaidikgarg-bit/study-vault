@@ -281,7 +281,7 @@ def get_all_notes(
     FROM notes n
     JOIN courses c ON n.course_id = c.id
     {where_clause}
-    ORDER BY n.created_at DESC
+    ORDER BY n.is_pinned DESC, n.created_at DESC
     LIMIT ? OFFSET ?;
     """
     params.extend([limit, offset])
