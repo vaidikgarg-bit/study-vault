@@ -3,6 +3,7 @@ FastAPI Server for StudyVault: Course Notes Hub & AI Quiz Generator.
 """
 
 import json
+import math
 import os
 import sys
 
@@ -178,6 +179,17 @@ def delete_course(course_id: int):
 # Notes Endpoints
 # ---------------------------------------------------------------------------
 
+def enrich_note_dict(row_dict: dict) -> dict:
+    """Computes dynamic word count and estimated reading time for note responses."""
+    content = row_dict.get("content", "")
+    words = len(content.split()) if content else 0
+    reading_time = max(1, math.ceil(words / 200))
+    d = dict(row_dict)
+    d["word_count"] = words
+    d["reading_time_mins"] = reading_time
+    return d
+
+
 @app.get("/api/courses/{course_id}/notes", response_model=List[NoteResponse])
 def get_course_notes(course_id: int):
     conn = get_db_connection()
@@ -189,7 +201,7 @@ def get_course_notes(course_id: int):
     ORDER BY n.created_at DESC;
     """, (course_id,)).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return [enrich_note_dict(dict(r)) for r in rows]
 
 
 @app.get("/api/notes", response_model=List[NoteResponse])
@@ -235,7 +247,7 @@ def get_all_notes(
 
     rows = conn.execute(query, params).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return [enrich_note_dict(dict(r)) for r in rows]
 
 
 @app.get("/api/notes/{note_id}", response_model=NoteResponse)
@@ -250,7 +262,7 @@ def get_single_note(note_id: int):
     conn.close()
     if not row:
         raise HTTPException(status_code=404, detail="Note not found")
-    return dict(row)
+    return enrich_note_dict(dict(row))
 
 
 @app.post("/api/notes", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
@@ -270,7 +282,7 @@ def create_note(note: NoteCreate):
     note_id, created_at = row["id"], row["created_at"]
     conn.close()
 
-    return {
+    return enrich_note_dict({
         "id": note_id,
         "course_id": note.course_id,
         "course_code": course["code"],
@@ -278,8 +290,10 @@ def create_note(note: NoteCreate):
         "title": note.title.strip(),
         "topic": note.topic.strip(),
         "content": note.content.strip(),
+        "tags": note.tags or "",
+        "is_favorite": False,
         "created_at": str(created_at)
-    }
+    })
 
 
 @app.post("/api/notes/upload-pdf", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
@@ -357,7 +371,7 @@ def update_note(note_id: int, note_update: NoteUpdate):
     """, (note_id,)).fetchone()
     conn.close()
 
-    return dict(updated)
+    return enrich_note_dict(dict(updated))
 
 
 @app.post("/api/notes/{note_id}/favorite", response_model=FavoriteToggleResponse)
