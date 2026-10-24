@@ -70,6 +70,8 @@ def init_db():
         cursor.execute("ALTER TABLE notes ADD COLUMN is_favorite INTEGER DEFAULT 0;")
     if "tags" not in columns:
         cursor.execute("ALTER TABLE notes ADD COLUMN tags TEXT DEFAULT '';")
+    if "is_pinned" not in columns:
+        cursor.execute("ALTER TABLE notes ADD COLUMN is_pinned INTEGER DEFAULT 0;")
 
     # Cached Quizzes Table
     cursor.execute("""
@@ -109,6 +111,7 @@ def init_db():
     # Performance Indices
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_course_id ON notes(course_id);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_favorite ON notes(is_favorite);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(is_pinned);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_courses_code ON courses(code);")
 
     # Check if we should seed default student courses
