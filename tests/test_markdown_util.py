@@ -39,3 +39,11 @@ def test_sanitize_markdown_removes_scripts():
 def test_sanitize_markdown_handles_empty():
     assert sanitize_markdown("") == ""
     assert strip_markdown_formatting("") == ""
+
+
+def test_word_frequency_distribution():
+    text = "binary tree search binary algorithm tree search"
+    dist = get_word_frequency_distribution(text, top_n=3)
+    assert dist["binary"] == 2
+    assert dist["tree"] == 2
+    assert dist["search"] == 2
