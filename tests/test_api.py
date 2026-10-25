@@ -286,6 +286,12 @@ def test_generate_flashcards():
     assert "front" in card
     assert "back" in card
 
+    # Test due flashcard decks queue
+    due_res = client.get("/api/flashcards/due")
+    assert due_res.status_code == 200
+    assert "total_decks" in due_res.json()
+    assert due_res.json()["total_decks"] >= 1
+
 
 def test_record_quiz_attempt_and_analytics():
     notes = client.get("/api/notes").json()

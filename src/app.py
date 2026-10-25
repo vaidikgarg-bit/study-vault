@@ -733,6 +733,36 @@ def review_flashcard_sm2(
     return res
 
 
+@app.get("/api/flashcards/due")
+def get_due_flashcard_decks():
+    """Returns all note decks currently cached and available for active recall practice."""
+    conn = get_db_connection()
+    rows = conn.execute("""
+    SELECT f.note_id, f.created_at, n.title as note_title, c.code as course_code, f.cards_json
+    FROM flashcards f
+    JOIN notes n ON f.note_id = n.id
+    JOIN courses c ON n.course_id = c.id
+    ORDER BY f.created_at DESC;
+    """).fetchall()
+    conn.close()
+
+    decks = []
+    for r in rows:
+        try:
+            cards = json.loads(r["cards_json"])
+            card_count = len(cards)
+        except Exception:
+            card_count = 0
+        decks.append({
+            "note_id": r["note_id"],
+            "note_title": r["note_title"],
+            "course_code": r["course_code"],
+            "card_count": card_count,
+            "created_at": str(r["created_at"])
+        })
+    return {"total_decks": len(decks), "decks": decks}
+
+
 # ---------------------------------------------------------------------------
 # Quiz Attempts & Analytics Endpoints
 # ---------------------------------------------------------------------------
