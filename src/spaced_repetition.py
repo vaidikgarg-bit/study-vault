@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 
 
-def calculate_sm2(rating: int, repetitions: int = 0, ease_factor: float = 2.5, interval_days: int = 1) -> Dict[str, Any]:
+def calculate_sm2(rating: int, repetitions: int = 0, ease_factor: float = 2.5, interval_days: int = 1, interval_modifier: float = 1.0) -> Dict[str, Any]:
     """
     Calculates next review schedule based on SuperMemo-2 algorithm.
     
@@ -33,7 +33,7 @@ def calculate_sm2(rating: int, repetitions: int = 0, ease_factor: float = 2.5, i
         elif repetitions == 1:
             new_interval = 6
         else:
-            new_interval = max(1, int(interval_days * ease_factor))
+            new_interval = max(1, int(interval_days * ease_factor * interval_modifier))
         new_repetitions = repetitions + 1
 
     # Update Ease Factor
