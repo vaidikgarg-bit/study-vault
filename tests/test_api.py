@@ -378,3 +378,9 @@ def test_bulk_delete_notes():
     res = client.request("DELETE", "/api/notes/bulk", json={"note_ids": [n1["id"], n2["id"]]})
     assert res.status_code == 200
     assert res.json()["deleted_count"] == 2
+
+
+def test_get_tags_aggregation():
+    res = client.get("/api/tags")
+    assert res.status_code == 200
+    assert isinstance(res.json(), list)
