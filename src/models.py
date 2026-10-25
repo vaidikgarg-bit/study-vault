@@ -73,6 +73,7 @@ class QuizQuestion(BaseModel):
     options: List[str]
     correct_index: int
     explanation: str
+    difficulty: Optional[str] = "medium"
 
 
 class QuizGenerateResponse(BaseModel):
