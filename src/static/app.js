@@ -295,6 +295,9 @@ function renderNotes(notes) {
           </button>
         </div>
         <div class="flex items-center gap-1">
+          <button onclick="duplicateNote(${n.id})" class="text-slate-400 hover:text-sky-300 p-1.5 text-xs transition" title="Duplicate Note">
+            <i class="fa-solid fa-copy"></i>
+          </button>
           <a href="/api/notes/${n.id}/export/markdown" download class="text-slate-400 hover:text-indigo-300 p-1.5 text-xs transition" title="Export as Markdown (.md)">
             <i class="fa-solid fa-file-arrow-down"></i>
           </a>
@@ -309,6 +312,17 @@ function renderNotes(notes) {
     </div>
   `).join("");
   triggerMathRender();
+}
+
+async function duplicateNote(noteId) {
+  try {
+    const res = await fetch(`/api/notes/${noteId}/duplicate`, { method: "POST" });
+    if (!res.ok) throw new Error("Duplication failed");
+    await loadNotes();
+    await loadCourses();
+  } catch (err) {
+    alert("Could not duplicate note: " + err.message);
+  }
 }
 
 // Form Handlers
