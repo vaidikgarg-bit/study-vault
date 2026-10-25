@@ -791,6 +791,36 @@ def record_quiz_attempt(attempt: QuizAttemptCreate):
     }
 
 
+@app.get("/api/quiz-attempts/{attempt_id}")
+def get_quiz_attempt_detail(attempt_id: int):
+    """Retrieves full metadata and score results for a specific quiz attempt."""
+    conn = get_db_connection()
+    row = conn.execute("""
+    SELECT qa.*, n.title as note_title, c.code as course_code, c.title as course_title
+    FROM quiz_attempts qa
+    JOIN notes n ON qa.note_id = n.id
+    JOIN courses c ON n.course_id = c.id
+    WHERE qa.id = ?;
+    """, (attempt_id,)).fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Quiz attempt not found")
+
+    pct = round((row["score"] / max(1, row["total_questions"])) * 100, 1)
+    return {
+        "id": row["id"],
+        "note_id": row["note_id"],
+        "note_title": row["note_title"],
+        "course_code": row["course_code"],
+        "course_title": row["course_title"],
+        "score": row["score"],
+        "total_questions": row["total_questions"],
+        "time_taken_seconds": row["time_taken_seconds"],
+        "percentage": pct,
+        "created_at": str(row["created_at"])
+    }
+
+
 @app.get("/api/analytics", response_model=AnalyticsResponse)
 def get_analytics():
     conn = get_db_connection()

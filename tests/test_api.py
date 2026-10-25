@@ -309,6 +309,13 @@ def test_record_quiz_attempt_and_analytics():
     assert data["score"] == 4
     assert data["percentage"] == 80.0
 
+    # Test single attempt detail
+    attempt_id = data["id"]
+    att_detail = client.get(f"/api/quiz-attempts/{attempt_id}")
+    assert att_detail.status_code == 200
+    assert att_detail.json()["id"] == attempt_id
+    assert "note_title" in att_detail.json()
+
     # Verify analytics update
     analytics_res = client.get("/api/analytics")
     assert analytics_res.status_code == 200
