@@ -277,6 +277,11 @@ function renderNotes(notes) {
           </div>
         </div>
         <h4 class="text-base font-bold text-slate-100 leading-snug">${n.title}</h4>
+        <div class="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400 font-medium">
+          <span><i class="fa-regular fa-clock text-indigo-400 mr-1"></i>${n.reading_time_mins || 1} min read</span>
+          <span>•</span>
+          <span>${n.word_count || (n.content.split(' ').length)} words</span>
+        </div>
         <p class="text-xs text-slate-400 mt-2 line-clamp-3 leading-relaxed">${n.content}</p>
       </div>
 
