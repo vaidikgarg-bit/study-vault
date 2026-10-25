@@ -42,13 +42,26 @@ def calculate_sm2(rating: int, repetitions: int = 0, ease_factor: float = 2.5, i
     new_ease_factor = max(1.3, round(new_ease_factor, 2))  # Minimum ease factor 1.3
 
     next_review_date = (datetime.now(timezone.utc) + timedelta(days=new_interval)).strftime("%Y-%m-%d")
+    mastery = get_mastery_level(new_repetitions, new_ease_factor)
 
     return {
         "repetitions": new_repetitions,
         "interval_days": new_interval,
         "ease_factor": new_ease_factor,
-        "due_date": next_review_date
+        "due_date": next_review_date,
+        "mastery_level": mastery
     }
+
+
+def get_mastery_level(repetitions: int, ease_factor: float) -> str:
+    """Classifies learning stage based on successful spaced repetition streak."""
+    if repetitions >= 5 and ease_factor >= 2.4:
+        return "Mastered"
+    elif repetitions >= 3:
+        return "Proficient"
+    elif repetitions >= 1:
+        return "Familiar"
+    return "Novice"
 
 
 def estimate_retention_probability(interval_days: int, days_elapsed: int, ease_factor: float = 2.5) -> float:

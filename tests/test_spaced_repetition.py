@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
-from spaced_repetition import calculate_sm2, estimate_retention_probability, classify_card_urgency
+from spaced_repetition import calculate_sm2, estimate_retention_probability, classify_card_urgency, get_mastery_level
 
 
 def test_sm2_first_review_success():
@@ -44,6 +44,14 @@ def test_retention_probability():
     assert 45.0 <= ret <= 55.0
     # Long elapsed time decays significantly
     assert estimate_retention_probability(interval_days=5, days_elapsed=50) < 5.0
+
+
+def test_get_mastery_level():
+    assert get_mastery_level(0, 2.5) == "Novice"
+    assert get_mastery_level(1, 2.5) == "Familiar"
+    assert get_mastery_level(3, 2.5) == "Proficient"
+    assert get_mastery_level(5, 2.5) == "Mastered"
+    assert get_mastery_level(5, 2.0) == "Proficient"
 
 
 def test_classify_card_urgency():
