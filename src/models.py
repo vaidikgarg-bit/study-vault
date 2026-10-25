@@ -130,3 +130,8 @@ class BulkDeleteRequest(BaseModel):
 class BulkDeleteResponse(BaseModel):
     deleted_count: int
     deleted_ids: List[int]
+
+
+class TagCount(BaseModel):
+    tag: str
+    count: int
