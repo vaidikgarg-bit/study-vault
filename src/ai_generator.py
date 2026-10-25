@@ -161,7 +161,8 @@ def _generate_quiz_offline(title: str, text: str) -> List[Dict[str, Any]]:
                     "question": f"Which of the following accurately describes '{term}'?",
                     "options": options,
                     "correct_index": correct_idx,
-                    "explanation": f"According to the notes: {term} — {correct}"
+                    "explanation": f"According to the notes: {term} — {correct}",
+                    "difficulty": "medium" if len(term) < 15 else "hard"
                 })
 
         elif match_is and len(questions) < 5:
