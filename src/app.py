@@ -28,7 +28,8 @@ from models import (
     QuizGenerateResponse, FlashcardsResponse,
     QuizAttemptCreate, QuizAttemptResponse,
     AnalyticsResponse, HealthResponse,
-    BulkDeleteRequest, BulkDeleteResponse
+    BulkDeleteRequest, BulkDeleteResponse,
+    TagCount
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -853,6 +854,21 @@ def get_quiz_attempt_detail(attempt_id: int):
         "percentage": pct,
         "created_at": str(row["created_at"])
     }
+
+
+@app.get("/api/tags", response_model=List[TagCount])
+def get_all_tags():
+    """Aggregates all unique note tags and their occurrence frequencies."""
+    conn = get_db_connection()
+    rows = conn.execute("SELECT tags FROM notes WHERE tags != '';").fetchall()
+    conn.close()
+    counts = {}
+    for r in rows:
+        for t in r["tags"].split(","):
+            cleaned = t.strip().lower()
+            if cleaned:
+                counts[cleaned] = counts.get(cleaned, 0) + 1
+    return [{"tag": k, "count": v} for k, v in sorted(counts.items(), key=lambda x: x[1], reverse=True)]
 
 
 @app.get("/api/analytics", response_model=AnalyticsResponse)
