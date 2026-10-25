@@ -49,6 +49,10 @@ An intelligent campus web application built with **FastAPI**, **SQLite**, and **
 - [x] `feat(api): implement RESTful FastAPI endpoints for courses, notes, and quiz attempts`
 - [x] `feat(ui): build interactive single-page dashboard with 3D flashcards and quiz arena`
 - [x] `ci: add automated pytest suite and GitHub Actions workflow`
+- [x] `feat(nlp): add key concept and cloze deletion flashcard generator`
+- [x] `feat(scheduler): implement SuperMemo-2 retention forecast and mastery levels`
+- [x] `feat(export): add multi-format document exporter (Markdown, JSON, Plaintext)`
+- [x] `feat(maint): add automated SQLite hot backup and vacuum script`
 
 ---
 
