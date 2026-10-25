@@ -59,3 +59,10 @@ def test_classify_card_urgency():
     assert classify_card_urgency(days_overdue=0) == "due"
     assert classify_card_urgency(days_overdue=-2) == "upcoming"
     assert classify_card_urgency(days_overdue=-10) == "scheduled"
+
+
+def test_sm2_interval_modifier():
+    # 2.0x modifier doubles calculated interval
+    standard = calculate_sm2(rating=3, repetitions=2, ease_factor=2.5, interval_days=6, interval_modifier=1.0)
+    doubled = calculate_sm2(rating=3, repetitions=2, ease_factor=2.5, interval_days=6, interval_modifier=2.0)
+    assert doubled["interval_days"] >= standard["interval_days"] * 2 - 1
