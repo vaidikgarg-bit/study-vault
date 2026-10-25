@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
-from markdown_util import strip_markdown_formatting, sanitize_markdown
+from markdown_util import strip_markdown_formatting, sanitize_markdown, get_word_frequency_distribution
 
 
 def test_strip_markdown_headers_and_bold():

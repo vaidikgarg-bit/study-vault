@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 from ai_generator import (
     extract_key_concepts,
     extract_bullet_summary,
+    calculate_readability_score,
     generate_cloze_flashcards,
     generate_quiz_from_notes,
     generate_flashcards_from_notes
