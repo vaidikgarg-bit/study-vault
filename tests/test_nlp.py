@@ -87,3 +87,11 @@ def test_calculate_readability_score():
     assert res_complex["level"] == "Advanced Academic"
 
     assert calculate_readability_score("")["score"] == 100.0
+
+
+def test_quiz_question_difficulty():
+    text = "Binary Search Tree: A node-based binary tree data structure with key invariant properties."
+    quiz = generate_quiz_from_notes("BST", text)
+    assert len(quiz) >= 1
+    assert "difficulty" in quiz[0]
+    assert quiz[0]["difficulty"] in ["easy", "medium", "hard"]
