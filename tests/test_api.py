@@ -384,3 +384,11 @@ def test_get_tags_aggregation():
     res = client.get("/api/tags")
     assert res.status_code == 200
     assert isinstance(res.json(), list)
+
+
+def test_log_study_session():
+    courses = client.get("/api/courses").json()
+    cid = courses[0]["id"]
+    res = client.post("/api/study-sessions", json={"course_id": cid, "duration_minutes": 25, "session_type": "flashcards"})
+    assert res.status_code == 201
+    assert res.json()["duration_minutes"] == 25
