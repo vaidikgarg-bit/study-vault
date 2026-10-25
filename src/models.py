@@ -136,3 +136,9 @@ class BulkDeleteResponse(BaseModel):
 class TagCount(BaseModel):
     tag: str
     count: int
+
+
+class StudySessionCreate(BaseModel):
+    course_id: int
+    duration_minutes: int
+    session_type: str = "flashcards"  # flashcards, quiz, reading
