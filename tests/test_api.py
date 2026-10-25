@@ -218,6 +218,17 @@ def test_regenerate_quiz():
     assert len(res2.json()["questions"]) > 0
 
 
+def test_duplicate_note():
+    notes = client.get("/api/notes").json()
+    orig = notes[0]
+    res = client.post(f"/api/notes/{orig['id']}/duplicate")
+    assert res.status_code == 201
+    copy_note = res.json()
+    assert copy_note["id"] != orig["id"]
+    assert f"{orig['title']} (Copy)" == copy_note["title"]
+    assert copy_note["course_id"] == orig["course_id"]
+
+
 def test_upload_pdf_note():
     from pdf_parser import create_sample_pdf_bytes
     courses = client.get("/api/courses").json()

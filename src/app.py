@@ -305,6 +305,44 @@ def get_single_note(note_id: int):
     return enrich_note_dict(dict(row))
 
 
+@app.post("/api/notes/{note_id}/duplicate", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
+def duplicate_note(note_id: int):
+    """Duplicates an existing study note with a copy suffix."""
+    conn = get_db_connection()
+    note = conn.execute("""
+    SELECT n.*, c.code as course_code, c.title as course_title
+    FROM notes n
+    JOIN courses c ON n.course_id = c.id
+    WHERE n.id = ?;
+    """, (note_id,)).fetchone()
+    if not note:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    new_title = f"{note['title']} (Copy)"
+    cursor = conn.execute(
+        "INSERT INTO notes (course_id, title, topic, content, tags) VALUES (?, ?, ?, ?, ?) RETURNING id, created_at;",
+        (note["course_id"], new_title, note["topic"], note["content"], note["tags"] or "")
+    )
+    row = cursor.fetchone()
+    conn.commit()
+    new_id, created_at = row["id"], row["created_at"]
+    conn.close()
+
+    return enrich_note_dict({
+        "id": new_id,
+        "course_id": note["course_id"],
+        "course_code": note["course_code"],
+        "course_title": note["course_title"],
+        "title": new_title,
+        "topic": note["topic"],
+        "content": note["content"],
+        "tags": note["tags"] or "",
+        "is_favorite": False,
+        "created_at": str(created_at)
+    })
+
+
 @app.post("/api/notes", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
 def create_note(note: NoteCreate):
     conn = get_db_connection()
