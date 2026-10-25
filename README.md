@@ -99,6 +99,10 @@ pytest tests -v
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/api/health` | System health status and DB check |
+| `POST` | `/api/notes/{id}/pin` | Pin or unpin note to top of list |
+| `DELETE` | `/api/notes/bulk` | Bulk delete multiple notes in one call |
+| `GET` | `/api/tags` | List all unique tags and counts |
+| `POST` | `/api/study-sessions` | Log study focus time session |
 | `GET` | `/api/courses` | List all enrolled courses with note counts |
 | `POST` | `/api/courses` | Enroll a new course |
 | `PUT` | `/api/courses/{id}` | Update course title, department, or color |
