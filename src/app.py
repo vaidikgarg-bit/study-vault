@@ -29,7 +29,8 @@ from models import (
     QuizAttemptCreate, QuizAttemptResponse,
     AnalyticsResponse, HealthResponse,
     BulkDeleteRequest, BulkDeleteResponse,
-    TagCount
+    TagCount,
+    StudySessionCreate
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -896,6 +897,20 @@ def get_analytics():
         "average_score_percent": avg_score_percent,
         "total_flashcards_reviewed": cards_count * 6  # Estimated reviewed
     }
+
+
+@app.post("/api/study-sessions", status_code=status.HTTP_201_CREATED)
+def log_study_session(session: StudySessionCreate):
+    """Logs dedicated focus minutes spent studying a course."""
+    conn = get_db_connection()
+    cursor = conn.execute(
+        "INSERT INTO study_sessions (course_id, duration_minutes, session_type) VALUES (?, ?, ?) RETURNING id, created_at;",
+        (session.course_id, session.duration_minutes, session.session_type)
+    )
+    row = cursor.fetchone()
+    conn.commit()
+    conn.close()
+    return {"id": row["id"], "course_id": session.course_id, "duration_minutes": session.duration_minutes, "session_type": session.session_type}
 
 
 @app.get("/api/analytics/activity")
