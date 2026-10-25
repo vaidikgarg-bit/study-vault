@@ -48,3 +48,14 @@ def sanitize_markdown(text: str) -> str:
         cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE | re.DOTALL)
 
     return cleaned
+
+
+def get_word_frequency_distribution(text: str, top_n: int = 10) -> dict:
+    """Calculates token distribution across substantive words."""
+    if not text:
+        return {}
+    tokens = re.findall(r"\b[A-Za-z]{3,}\b", text.lower())
+    freq = {}
+    for t in tokens:
+        freq[t] = freq.get(t, 0) + 1
+    return dict(sorted(freq.items(), key=lambda x: x[1], reverse=True)[:top_n])
