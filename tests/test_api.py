@@ -172,6 +172,12 @@ def test_export_note_markdown_and_json():
     assert data["id"] == note_id
     assert "course" in data
 
+    # Test text export
+    res_txt = client.get(f"/api/notes/{note_id}/export/txt")
+    assert res_txt.status_code == 200
+    assert "text/plain" in res_txt.headers["content-type"]
+    assert "TITLE:" in res_txt.text
+
 
 def test_note_summary():
     notes = client.get("/api/notes").json()

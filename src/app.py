@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from datetime import datetime, timezone
 from config import APP_NAME, APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from database import init_db, get_db_connection
+from markdown_util import strip_markdown_formatting, sanitize_markdown
 from pdf_parser import extract_text_from_pdf_bytes
 from spaced_repetition import calculate_sm2, estimate_retention_probability, classify_card_urgency
 from models import (
@@ -551,6 +552,33 @@ def export_note_json(note_id: int):
     return Response(
         content=json.dumps(export_payload, indent=2),
         media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@app.get("/api/notes/{note_id}/export/txt")
+def export_note_txt(note_id: int):
+    """Exports note as stripped plain text without markdown syntax."""
+    conn = get_db_connection()
+    note = conn.execute("""
+    SELECT n.*, c.code as course_code, c.title as course_title
+    FROM notes n
+    JOIN courses c ON n.course_id = c.id
+    WHERE n.id = ?;
+    """, (note_id,)).fetchone()
+    conn.close()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    clean_content = strip_markdown_formatting(note["content"])
+    txt = f"TITLE: {note['title']}\nCOURSE: {note['course_code']} - {note['course_title']}\nTOPIC: {note['topic']}\n\nCONTENT:\n{clean_content}\n"
+
+    safe_title = "".join(c for c in note["title"] if c.isalnum() or c in (" ", "-", "_")).strip().replace(" ", "_")
+    filename = f"{note['course_code']}_{safe_title}.txt"
+
+    return Response(
+        content=txt,
+        media_type="text/plain",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 
