@@ -114,6 +114,18 @@ def init_db():
     );
     """)
 
+    # Study Sessions Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS study_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        course_id INTEGER NOT NULL,
+        duration_minutes INTEGER NOT NULL,
+        session_type TEXT DEFAULT 'reading',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE
+    );
+    """)
+
     # Performance Indices
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_course_id ON notes(course_id);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_favorite ON notes(is_favorite);")
