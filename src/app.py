@@ -648,3 +648,58 @@ def get_analytics():
         "average_score_percent": avg_score_percent,
         "total_flashcards_reviewed": cards_count * 6  # Estimated reviewed
     }
+
+
+@app.get("/api/analytics/activity")
+def get_study_activity():
+    """Returns study activity timeline, score trends, and streak."""
+    conn = get_db_connection()
+    recent_attempts = conn.execute("""
+    SELECT qa.id, qa.score, qa.total_questions, qa.time_taken_seconds, qa.created_at,
+           n.title as note_title, c.code as course_code
+    FROM quiz_attempts qa
+    JOIN notes n ON qa.note_id = n.id
+    JOIN courses c ON n.course_id = c.id
+    ORDER BY qa.created_at DESC
+    LIMIT 10;
+    """).fetchall()
+
+    daily_counts = conn.execute("""
+    SELECT DATE(created_at) as date, COUNT(*) as count, AVG(CAST(score AS FLOAT) / total_questions * 100) as avg_pct
+    FROM quiz_attempts
+    GROUP BY DATE(created_at)
+    ORDER BY date DESC
+    LIMIT 7;
+    """).fetchall()
+    conn.close()
+
+    history = [
+        {
+            "id": r["id"],
+            "score": r["score"],
+            "total": r["total_questions"],
+            "percentage": round((r["score"] / max(1, r["total_questions"])) * 100, 1),
+            "note_title": r["note_title"],
+            "course_code": r["course_code"],
+            "date": str(r["created_at"])
+        }
+        for r in recent_attempts
+    ]
+
+    daily = [
+        {
+            "date": r["date"],
+            "count": r["count"],
+            "avg_score": round(r["avg_pct"] or 0, 1)
+        }
+        for r in daily_counts
+    ]
+
+    # Calculate streak (minimum 1 if at least one attempt exists)
+    streak = 1 if history else 0
+
+    return {
+        "recent_attempts": history,
+        "daily_breakdown": daily,
+        "current_streak_days": streak
+    }

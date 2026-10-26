@@ -264,6 +264,15 @@ def test_record_quiz_attempt_and_analytics():
     assert analytics["quizzes_taken"] >= 1
     assert analytics["average_score_percent"] > 0
 
+    # Test study activity timeline
+    activity_res = client.get("/api/analytics/activity")
+    assert activity_res.status_code == 200
+    act_data = activity_res.json()
+    assert "recent_attempts" in act_data
+    assert "daily_breakdown" in act_data
+    assert "current_streak_days" in act_data
+    assert len(act_data["recent_attempts"]) >= 1
+
 
 def test_delete_note():
     # Create temporary note to delete
