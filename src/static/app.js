@@ -2,6 +2,7 @@
 
 let allCourses = [];
 let allNotes = [];
+let favoritesOnly = false;
 let currentQuiz = null;
 let currentQuestions = [];
 let userAnswers = {};
@@ -192,17 +193,46 @@ function filterByCourseId(id) {
   showView("dashboard");
 }
 
+function toggleFavoriteFilter() {
+  favoritesOnly = !favoritesOnly;
+  const btn = document.getElementById("btn-filter-favs");
+  const star = document.getElementById("star-filter-icon");
+  if (favoritesOnly) {
+    btn.classList.add("border-amber-500", "bg-amber-950/40", "text-amber-300");
+    star.className = "fa-solid fa-star text-amber-400";
+  } else {
+    btn.classList.remove("border-amber-500", "bg-amber-950/40", "text-amber-300");
+    star.className = "fa-solid fa-star text-slate-500";
+  }
+  filterNotes();
+}
+
+async function toggleFavoriteNote(noteId) {
+  try {
+    const res = await fetch(`/api/notes/${noteId}/favorite`, { method: "POST" });
+    const data = await res.json();
+    const note = allNotes.find(n => n.id === noteId);
+    if (note) {
+      note.is_favorite = data.is_favorite;
+    }
+    filterNotes();
+  } catch (err) {
+    console.error("Failed to toggle favorite:", err);
+  }
+}
+
 function filterNotes() {
   const query = document.getElementById("note-search").value.toLowerCase().trim();
   const courseFilter = document.getElementById("course-filter-select").value;
 
   const filtered = allNotes.filter(n => {
     const matchesCourse = courseFilter === "all" || n.course_id == courseFilter;
+    const matchesFav = !favoritesOnly || Boolean(n.is_favorite);
     const matchesQuery = n.title.toLowerCase().includes(query) ||
                          n.topic.toLowerCase().includes(query) ||
                          n.content.toLowerCase().includes(query) ||
                          n.course_code.toLowerCase().includes(query);
-    return matchesCourse && matchesQuery;
+    return matchesCourse && matchesFav && matchesQuery;
   });
 
   renderNotes(filtered);
@@ -225,7 +255,12 @@ function renderNotes(notes) {
       <div>
         <div class="flex items-center justify-between gap-2 mb-2">
           <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-indigo-500/20 text-indigo-300">${n.course_code}</span>
-          <span class="text-xs text-slate-400 font-medium">${n.topic}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400 font-medium">${n.topic}</span>
+            <button onclick="toggleFavoriteNote(${n.id})" class="text-sm p-1 transition ${n.is_favorite ? 'text-amber-400 hover:text-amber-300' : 'text-slate-500 hover:text-amber-400'}" title="${n.is_favorite ? 'Unstar note' : 'Star note'}">
+              <i class="fa-solid fa-star"></i>
+            </button>
+          </div>
         </div>
         <h4 class="text-base font-bold text-slate-100 leading-snug">${n.title}</h4>
         <p class="text-xs text-slate-400 mt-2 line-clamp-3 leading-relaxed">${n.content}</p>
