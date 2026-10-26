@@ -513,6 +513,50 @@ function prevCard() {
   showCard(prevIdx);
 }
 
+async function rateCard(rating) {
+  try {
+    const res = await fetch(`/api/flashcards/review?rating=${rating}`, { method: "POST" });
+    const data = await res.json();
+    const ratingLabels = { 1: "Again (1d)", 2: "Hard (3d)", 3: "Good (6d)", 4: "Easy (boost)" };
+    const label = ratingLabels[rating] || "Rated";
+
+    // Show brief toast
+    const counter = document.getElementById("card-counter");
+    const origText = counter.innerText;
+    counter.innerText = `Saved: ${label}`;
+    counter.classList.add("text-emerald-400");
+    setTimeout(() => {
+      counter.classList.remove("text-emerald-400");
+      nextCard();
+    }, 400);
+  } catch (e) {
+    nextCard();
+  }
+}
+
+// Global Keyboard Navigation
+document.addEventListener("keydown", (e) => {
+  // Only trigger if not typing inside an input or textarea
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
+
+  const flashcardSec = document.getElementById("view-flashcards");
+  if (flashcardSec && !flashcardSec.classList.contains("hidden")) {
+    if (e.code === "Space" || e.key === "Enter") {
+      e.preventDefault();
+      flipCard();
+    } else if (e.key === "ArrowRight" || e.key === "l") {
+      e.preventDefault();
+      nextCard();
+    } else if (e.key === "ArrowLeft" || e.key === "h") {
+      e.preventDefault();
+      prevCard();
+    } else if (["1", "2", "3", "4"].includes(e.key)) {
+      e.preventDefault();
+      rateCard(parseInt(e.key, 10));
+    }
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Analytics
 // ---------------------------------------------------------------------------
