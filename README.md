@@ -94,14 +94,39 @@ pytest tests -v
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
+| `GET` | `/api/health` | System health status and DB check |
 | `GET` | `/api/courses` | List all enrolled courses with note counts |
 | `POST` | `/api/courses` | Enroll a new course |
-| `GET` | `/api/notes` | List all study notes across courses |
+| `PUT` | `/api/courses/{id}` | Update course title, department, or color |
+| `DELETE` | `/api/courses/{id}` | Delete course and cascade notes |
+| `GET` | `/api/notes` | List/search notes (`?search=`, `?course_id=`, `?favorite_only=`, `?tag=`) |
 | `POST` | `/api/notes` | Upload a new lecture note |
+| `PUT` | `/api/notes/{id}` | Update title, topic, content, or tags |
+| `DELETE` | `/api/notes/{id}` | Delete a note and its cached quizzes |
+| `POST` | `/api/notes/{id}/favorite` | Toggle note bookmark/favorite |
+| `GET` | `/api/notes/{id}/export/markdown` | Download note as Markdown (.md) |
+| `GET` | `/api/notes/{id}/export/json` | Download note and cached study cards as JSON |
+| `GET` | `/api/notes/{id}/concepts` | Extract key technical concepts and terms |
 | `POST` | `/api/notes/{id}/quiz` | Generate or retrieve AI quiz for a note |
+| `POST` | `/api/notes/{id}/quiz/regenerate` | Force cache refresh and regenerate quiz |
 | `POST` | `/api/notes/{id}/flashcards` | Generate or retrieve flashcards for a note |
+| `POST` | `/api/notes/{id}/cloze-cards` | Generate cloze deletion fill-in-the-blank cards |
+| `POST` | `/api/flashcards/review` | SuperMemo-2 (SM-2) repetition scheduler calculation |
 | `POST` | `/api/quiz-attempts` | Record student quiz score & time |
 | `GET` | `/api/analytics` | Overall student learning metrics |
+| `GET` | `/api/analytics/activity` | Recent attempt history and streak analytics |
+
+---
+
+## ⌨️ Flashcard Keyboard Shortcuts
+
+- `Space` / `Enter`: Flip flashcard
+- `→` / `L`: Next card
+- `←` / `H`: Previous card
+- `1`: Again (reset review interval)
+- `2`: Hard (small interval boost)
+- `3`: Good (standard interval boost)
+- `4`: Easy (exponential interval boost)
 
 ---
 
