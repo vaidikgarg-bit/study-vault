@@ -369,6 +369,7 @@ async function startQuiz(noteId) {
 }
 
 function renderQuizQuestions() {
+  updateQuizProgress();
   const container = document.getElementById("quiz-container");
   container.innerHTML = currentQuestions.map((q, qIdx) => `
     <div class="bg-slate-900/60 rounded-xl p-5 border border-slate-700/60 space-y-4">
@@ -400,8 +401,19 @@ function renderQuizQuestions() {
   triggerMathRender();
 }
 
+function updateQuizProgress() {
+  const answered = Object.keys(userAnswers).length;
+  const total = currentQuestions.length;
+  const pct = total > 0 ? Math.round((answered / total) * 100) : 0;
+  const pText = document.getElementById("quiz-progress-text");
+  const pBar = document.getElementById("quiz-progress-bar");
+  if (pText) pText.innerText = `${answered} / ${total} Answered (${pct}%)`;
+  if (pBar) pBar.style.width = `${pct}%`;
+}
+
 function selectQuizAnswer(qIdx, optIdx) {
   userAnswers[qIdx] = optIdx;
+  updateQuizProgress();
   const q = currentQuestions[qIdx];
 
   // Disable buttons for this question & highlight choices
