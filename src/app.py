@@ -15,7 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from config import APP_TITLE, APP_DESCRIPTION, APP_VERSION
+from datetime import datetime, timezone
+from config import APP_NAME, APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from database import init_db, get_db_connection
 from pdf_parser import extract_text_from_pdf_bytes
 from spaced_repetition import calculate_sm2
@@ -24,7 +25,7 @@ from models import (
     NoteCreate, NoteResponse,
     QuizGenerateResponse, FlashcardsResponse,
     QuizAttemptCreate, QuizAttemptResponse,
-    AnalyticsResponse
+    AnalyticsResponse, HealthResponse
 )
 from ai_generator import generate_quiz_from_notes, generate_flashcards_from_notes
 
@@ -57,6 +58,26 @@ def serve_index():
     if os.path.exists(index_file):
         return FileResponse(index_file)
     return {"message": "StudyVault API is running. Visit /docs for interactive Swagger UI."}
+
+
+@app.get("/api/health", response_model=HealthResponse, tags=["System"])
+def check_health():
+    """System health check endpoint verifying database connectivity."""
+    db_status = "connected"
+    try:
+        conn = get_db_connection()
+        conn.execute("SELECT 1;").fetchone()
+        conn.close()
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+
+    return {
+        "status": "healthy" if db_status == "connected" else "degraded",
+        "app": APP_NAME,
+        "version": APP_VERSION,
+        "database": db_status,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
 
 
 # ---------------------------------------------------------------------------

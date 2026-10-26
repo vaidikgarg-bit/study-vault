@@ -83,3 +83,11 @@ class AnalyticsResponse(BaseModel):
     quizzes_taken: int
     average_score_percent: float
     total_flashcards_reviewed: int
+
+
+class HealthResponse(BaseModel):
+    status: str
+    app: str
+    version: str
+    database: str
+    timestamp: str
