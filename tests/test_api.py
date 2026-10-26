@@ -60,6 +60,20 @@ def test_get_notes():
     assert len(notes) >= 3
 
 
+def test_search_notes():
+    # Search for BST or tree
+    res = client.get("/api/notes?search=BST")
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data) >= 1
+    assert "BST" in data[0]["title"] or "BST" in data[0]["content"]
+
+    # Search with no match
+    res_empty = client.get("/api/notes?search=NonExistentSubjectXYZ123")
+    assert res_empty.status_code == 200
+    assert len(res_empty.json()) == 0
+
+
 def test_create_note():
     # Fetch first course id
     courses = client.get("/api/courses").json()

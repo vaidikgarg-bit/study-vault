@@ -9,7 +9,7 @@ import sys
 # Ensure src/ directory is on module search path when imported by uvicorn
 sys.path.insert(0, os.path.dirname(__file__))
 
-from typing import List
+from typing import List, Optional
 from fastapi import FastAPI, HTTPException, status, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -143,14 +143,47 @@ def get_course_notes(course_id: int):
 
 
 @app.get("/api/notes", response_model=List[NoteResponse])
-def get_all_notes():
+def get_all_notes(
+    search: Optional[str] = None,
+    course_id: Optional[int] = None,
+    favorite_only: Optional[bool] = False,
+    tag: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0
+):
+    """Retrieves notes with optional keyword search, course filter, and favorite filter."""
     conn = get_db_connection()
-    rows = conn.execute("""
+    conditions = []
+    params = []
+
+    if course_id is not None:
+        conditions.append("n.course_id = ?")
+        params.append(course_id)
+
+    if favorite_only:
+        conditions.append("n.is_favorite = 1")
+
+    if tag:
+        conditions.append("n.tags LIKE ?")
+        params.append(f"%{tag.strip()}%")
+
+    if search:
+        term = f"%{search.strip()}%"
+        conditions.append("(n.title LIKE ? OR n.topic LIKE ? OR n.content LIKE ? OR c.code LIKE ?)")
+        params.extend([term, term, term, term])
+
+    where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+    query = f"""
     SELECT n.*, c.code as course_code, c.title as course_title
     FROM notes n
     JOIN courses c ON n.course_id = c.id
-    ORDER BY n.created_at DESC;
-    """).fetchall()
+    {where_clause}
+    ORDER BY n.created_at DESC
+    LIMIT ? OFFSET ?;
+    """
+    params.extend([limit, offset])
+
+    rows = conn.execute(query, params).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
