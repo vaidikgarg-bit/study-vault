@@ -84,6 +84,16 @@ def test_search_notes():
     assert res_empty.status_code == 200
     assert len(res_empty.json()) == 0
 
+    # Filter by favorite_only
+    fav_res = client.get("/api/notes?favorite_only=true")
+    assert fav_res.status_code == 200
+    assert isinstance(fav_res.json(), list)
+
+    # Filter by tag
+    tag_res = client.get("/api/notes?tag=trees")
+    assert tag_res.status_code == 200
+    assert isinstance(tag_res.json(), list)
+
 
 def test_create_note():
     # Fetch first course id
