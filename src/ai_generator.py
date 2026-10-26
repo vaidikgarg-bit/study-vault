@@ -221,6 +221,51 @@ def _generate_flashcards_offline(title: str, text: str) -> List[Dict[str, Any]]:
     return cards
 
 
+def generate_cloze_flashcards(title: str, text: str, max_cards: int = 6) -> List[Dict[str, Any]]:
+    """
+    Generates fill-in-the-blank (Cloze Deletion) flashcards for active recall.
+    Identifies high-value sentences and blanks out key technical entities.
+    """
+    cloze_cards = []
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+
+    # Pattern for definitions: "Term: Definition" or "Term is ..."
+    for line in lines:
+        match_colon = re.match(r"^([A-Za-z0-9\s\-\(\)\']+):\s*(.+)$", line)
+        if match_colon:
+            term = match_colon.group(1).strip()
+            fact = match_colon.group(2).strip()
+            if len(term) >= 3 and len(fact) >= 15:
+                cloze_cards.append({
+                    "id": len(cloze_cards) + 1,
+                    "front": f"[ ... ] : {fact}",
+                    "back": f"**{term}**\n\n{fact}",
+                    "blank": term,
+                    "type": "cloze",
+                    "topic": title
+                })
+        else:
+            # Check for key terms inside informative sentences
+            match_keywords = re.findall(r"\b([A-Z][a-z0-9\-]+(?:\s+[A-Z][a-z0-9\-]+)*)\b", line)
+            for kw in match_keywords:
+                if len(kw) > 4 and kw.lower() not in STOPWORDS and len(line) > len(kw) + 20:
+                    cloze_sentence = line.replace(kw, f"[ ... ]", 1)
+                    cloze_cards.append({
+                        "id": len(cloze_cards) + 1,
+                        "front": cloze_sentence,
+                        "back": f"Missing term: **{kw}**\n\nFull statement: {line}",
+                        "blank": kw,
+                        "type": "cloze",
+                        "topic": title
+                    })
+                    break
+
+        if len(cloze_cards) >= max_cards:
+            break
+
+    return cloze_cards
+
+
 # ---------------------------------------------------------------------------
 # Gemini AI Online Engine (Activated when GEMINI_API_KEY is configured)
 # ---------------------------------------------------------------------------
