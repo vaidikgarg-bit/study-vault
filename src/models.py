@@ -13,6 +13,12 @@ class CourseCreate(BaseModel):
     color: Optional[str] = Field(default="indigo", json_schema_extra={"example": "indigo"})
 
 
+class CourseUpdate(BaseModel):
+    title: Optional[str] = None
+    department: Optional[str] = None
+    color: Optional[str] = None
+
+
 class CourseResponse(CourseCreate):
     id: int
     note_count: int = 0
@@ -24,13 +30,30 @@ class NoteCreate(BaseModel):
     title: str = Field(..., json_schema_extra={"example": "Binary Search Trees & Traversal Algorithms"})
     topic: str = Field(..., json_schema_extra={"example": "Data Structures"})
     content: str = Field(..., json_schema_extra={"example": "A Binary Search Tree (BST) is a node-based binary tree..."})
+    tags: Optional[str] = Field(default="", json_schema_extra={"example": "trees,algorithms"})
+
+
+class NoteUpdate(BaseModel):
+    title: Optional[str] = None
+    topic: Optional[str] = None
+    content: Optional[str] = None
+    tags: Optional[str] = None
+    is_favorite: Optional[bool] = None
 
 
 class NoteResponse(NoteCreate):
     id: int
     course_code: str
     course_title: str
+    is_favorite: bool = False
+    tags: str = ""
     created_at: str
+
+
+class FavoriteToggleResponse(BaseModel):
+    id: int
+    is_favorite: bool
+    message: str
 
 
 class QuizOption(BaseModel):
