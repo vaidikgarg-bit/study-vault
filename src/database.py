@@ -41,10 +41,20 @@ def init_db():
         title TEXT NOT NULL,
         topic TEXT NOT NULL,
         content TEXT NOT NULL,
+        is_favorite INTEGER DEFAULT 0,
+        tags TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE
     );
     """)
+
+    # Ensure schema migrations for existing databases
+    cursor.execute("PRAGMA table_info(notes);")
+    columns = [col[1] for col in cursor.fetchall()]
+    if "is_favorite" not in columns:
+        cursor.execute("ALTER TABLE notes ADD COLUMN is_favorite INTEGER DEFAULT 0;")
+    if "tags" not in columns:
+        cursor.execute("ALTER TABLE notes ADD COLUMN tags TEXT DEFAULT '';")
 
     # Cached Quizzes Table
     cursor.execute("""
@@ -80,6 +90,11 @@ def init_db():
         FOREIGN KEY (note_id) REFERENCES notes (id) ON DELETE CASCADE
     );
     """)
+
+    # Performance Indices
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_course_id ON notes(course_id);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_favorite ON notes(is_favorite);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_courses_code ON courses(code);")
 
     # Check if we should seed default student courses
     cursor.execute("SELECT COUNT(*) FROM courses;")
