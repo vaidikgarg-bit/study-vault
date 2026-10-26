@@ -277,6 +277,27 @@ def update_note(note_id: int, note_update: NoteUpdate):
     return dict(updated)
 
 
+@app.post("/api/notes/{note_id}/favorite", response_model=FavoriteToggleResponse)
+def toggle_note_favorite(note_id: int):
+    """Toggles bookmark/favorite status for a study note."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id, is_favorite FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    if not note:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    new_status = 0 if note["is_favorite"] else 1
+    conn.execute("UPDATE notes SET is_favorite = ? WHERE id = ?;", (new_status, note_id))
+    conn.commit()
+    conn.close()
+
+    return {
+        "id": note_id,
+        "is_favorite": bool(new_status),
+        "message": "Note added to favorites" if new_status else "Note removed from favorites"
+    }
+
+
 @app.delete("/api/notes/{note_id}")
 def delete_note(note_id: int):
     conn = get_db_connection()

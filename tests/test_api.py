@@ -96,6 +96,22 @@ def test_update_note():
     assert "trees" in data["tags"]
 
 
+def test_toggle_note_favorite():
+    notes = client.get("/api/notes").json()
+    note_id = notes[0]["id"]
+
+    # Toggle favorite on
+    res1 = client.post(f"/api/notes/{note_id}/favorite")
+    assert res1.status_code == 200
+    assert res1.json()["id"] == note_id
+    assert res1.json()["is_favorite"] is True
+
+    # Toggle favorite off
+    res2 = client.post(f"/api/notes/{note_id}/favorite")
+    assert res2.status_code == 200
+    assert res2.json()["is_favorite"] is False
+
+
 def test_upload_pdf_note():
     from pdf_parser import create_sample_pdf_bytes
     courses = client.get("/api/courses").json()
