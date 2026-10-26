@@ -238,6 +238,20 @@ function filterNotes() {
   renderNotes(filtered);
 }
 
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+const debouncedFilterNotes = debounce(filterNotes, 200);
+
 function renderNotes(notes) {
   const grid = document.getElementById("notes-grid");
   if (notes.length === 0) {
