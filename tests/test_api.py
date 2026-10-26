@@ -143,6 +143,17 @@ def test_export_note_markdown_and_json():
     assert "course" in data
 
 
+def test_get_note_concepts():
+    notes = client.get("/api/notes").json()
+    note_id = notes[0]["id"]
+    res = client.get(f"/api/notes/{note_id}/concepts")
+    assert res.status_code == 200
+    data = res.json()
+    assert "concepts" in data
+    assert len(data["concepts"]) > 0
+    assert "relevance_score" in data["concepts"][0]
+
+
 def test_upload_pdf_note():
     from pdf_parser import create_sample_pdf_bytes
     courses = client.get("/api/courses").json()

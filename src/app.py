@@ -27,7 +27,11 @@ from models import (
     QuizAttemptCreate, QuizAttemptResponse,
     AnalyticsResponse, HealthResponse
 )
-from ai_generator import generate_quiz_from_notes, generate_flashcards_from_notes
+from ai_generator import (
+    generate_quiz_from_notes,
+    generate_flashcards_from_notes,
+    extract_key_concepts
+)
 
 # Initialize DB tables on startup
 init_db()
@@ -422,6 +426,19 @@ def delete_note(note_id: int):
     if cursor.rowcount == 0:
         raise HTTPException(status_code=404, detail="Note not found")
     return {"message": "Note deleted successfully"}
+
+
+@app.get("/api/notes/{note_id}/concepts")
+def get_note_concepts(note_id: int):
+    """Extracts key concepts and terms from a note using NLP frequency analysis."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id, title, content FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    conn.close()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    concepts = extract_key_concepts(f"{note['title']} \n {note['content']}")
+    return {"note_id": note_id, "title": note["title"], "concepts": concepts}
 
 
 # ---------------------------------------------------------------------------

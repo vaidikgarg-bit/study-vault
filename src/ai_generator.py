@@ -10,6 +10,61 @@ from typing import List, Dict, Any
 import httpx
 
 
+STOPWORDS = {
+    "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are",
+    "aren't", "as", "at", "be", "because", "been", "before", "being", "below", "between", "both",
+    "but", "by", "can", "can't", "cannot", "could", "did", "do", "does", "doing", "don't", "down",
+    "during", "each", "few", "for", "from", "further", "had", "has", "have", "having", "he",
+    "her", "here", "hers", "herself", "him", "himself", "his", "how", "i", "if", "in", "into",
+    "is", "it", "its", "itself", "let's", "me", "more", "most", "must", "my", "myself", "no",
+    "nor", "not", "of", "off", "on", "once", "only", "or", "other", "ought", "our", "ours",
+    "ourselves", "out", "over", "own", "same", "she", "should", "so", "some", "such", "than",
+    "that", "the", "their", "theirs", "them", "themselves", "then", "there", "these", "they",
+    "this", "those", "through", "to", "too", "under", "until", "up", "very", "was", "we", "were",
+    "what", "when", "where", "which", "while", "who", "whom", "why", "with", "would", "you", "your"
+}
+
+
+def extract_key_concepts(text: str, max_terms: int = 8) -> List[Dict[str, Any]]:
+    """
+    Extracts key concepts, technical terms, and high-frequency subject keywords from study text.
+    """
+    if not text:
+        return []
+
+    # Tokenize words while preserving hyphens
+    tokens = re.findall(r"\b[A-Za-z][A-Za-z0-9\-]{2,}\b", text)
+    term_counts: Dict[str, int] = {}
+
+    for token in tokens:
+        lower = token.lower()
+        if lower in STOPWORDS or len(lower) < 4:
+            continue
+        term_counts[lower] = term_counts.get(lower, 0) + 1
+
+    # Also detect multi-word capitalized phrases (e.g., "Binary Search Tree", "Dijkstra's Algorithm")
+    phrases = re.findall(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b", text)
+    for phrase in phrases:
+        p_clean = phrase.strip()
+        if len(p_clean) > 5:
+            term_counts[p_clean] = term_counts.get(p_clean, 0) + 2
+
+    if not term_counts:
+        return []
+
+    sorted_terms = sorted(term_counts.items(), key=lambda x: x[1], reverse=True)[:max_terms]
+    max_freq = sorted_terms[0][1] if sorted_terms else 1
+
+    return [
+        {
+            "concept": term.title() if term.islower() else term,
+            "frequency": count,
+            "relevance_score": round(min(1.0, count / max_freq), 2)
+        }
+        for term, count in sorted_terms
+    ]
+
+
 def generate_quiz_from_notes(note_title: str, note_content: str) -> List[Dict[str, Any]]:
     """Generates structured multiple-choice questions from study notes."""
     api_key = os.getenv("GEMINI_API_KEY")
