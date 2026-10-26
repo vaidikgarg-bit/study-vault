@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, status, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, status, UploadFile, File, Form, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -329,6 +329,88 @@ def toggle_note_favorite(note_id: int):
         "is_favorite": bool(new_status),
         "message": "Note added to favorites" if new_status else "Note removed from favorites"
     }
+
+
+@app.get("/api/notes/{note_id}/export/markdown")
+def export_note_markdown(note_id: int):
+    """Exports note as formatted Markdown file."""
+    conn = get_db_connection()
+    note = conn.execute("""
+    SELECT n.*, c.code as course_code, c.title as course_title
+    FROM notes n
+    JOIN courses c ON n.course_id = c.id
+    WHERE n.id = ?;
+    """, (note_id,)).fetchone()
+    conn.close()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    safe_title = "".join(c for c in note["title"] if c.isalnum() or c in (" ", "-", "_")).strip().replace(" ", "_")
+    filename = f"{note['course_code']}_{safe_title}.md"
+
+    md_content = f"""# {note['title']}
+
+**Course:** {note['course_code']} - {note['course_title']}  
+**Topic:** {note['topic']}  
+**Tags:** {note['tags'] or 'None'}  
+**Created At:** {note['created_at']}  
+
+---
+
+## Content
+
+{note['content']}
+"""
+    return Response(
+        content=md_content,
+        media_type="text/markdown",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@app.get("/api/notes/{note_id}/export/json")
+def export_note_json(note_id: int):
+    """Exports note along with course info, cached quiz, and flashcards as JSON."""
+    conn = get_db_connection()
+    note = conn.execute("""
+    SELECT n.*, c.code as course_code, c.title as course_title, c.department
+    FROM notes n
+    JOIN courses c ON n.course_id = c.id
+    WHERE n.id = ?;
+    """, (note_id,)).fetchone()
+    if not note:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    cached_quiz = conn.execute("SELECT questions_json FROM quizzes WHERE note_id = ?;", (note_id,)).fetchone()
+    cached_cards = conn.execute("SELECT cards_json FROM flashcards WHERE note_id = ?;", (note_id,)).fetchone()
+    conn.close()
+
+    export_payload = {
+        "id": note["id"],
+        "title": note["title"],
+        "topic": note["topic"],
+        "tags": [t.strip() for t in note["tags"].split(",") if t.strip()] if note["tags"] else [],
+        "content": note["content"],
+        "is_favorite": bool(note["is_favorite"]),
+        "created_at": str(note["created_at"]),
+        "course": {
+            "code": note["course_code"],
+            "title": note["course_title"],
+            "department": note["department"]
+        },
+        "quiz": json.loads(cached_quiz["questions_json"]) if cached_quiz else None,
+        "flashcards": json.loads(cached_cards["cards_json"]) if cached_cards else None
+    }
+
+    safe_title = "".join(c for c in note["title"] if c.isalnum() or c in (" ", "-", "_")).strip().replace(" ", "_")
+    filename = f"{note['course_code']}_{safe_title}.json"
+
+    return Response(
+        content=json.dumps(export_payload, indent=2),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
 
 
 @app.delete("/api/notes/{note_id}")

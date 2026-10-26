@@ -126,6 +126,23 @@ def test_toggle_note_favorite():
     assert res2.json()["is_favorite"] is False
 
 
+def test_export_note_markdown_and_json():
+    notes = client.get("/api/notes").json()
+    note_id = notes[0]["id"]
+
+    res_md = client.get(f"/api/notes/{note_id}/export/markdown")
+    assert res_md.status_code == 200
+    assert "text/markdown" in res_md.headers["content-type"]
+    assert "# " in res_md.text
+
+    res_json = client.get(f"/api/notes/{note_id}/export/json")
+    assert res_json.status_code == 200
+    assert "application/json" in res_json.headers["content-type"]
+    data = res_json.json()
+    assert data["id"] == note_id
+    assert "course" in data
+
+
 def test_upload_pdf_note():
     from pdf_parser import create_sample_pdf_bytes
     courses = client.get("/api/courses").json()
