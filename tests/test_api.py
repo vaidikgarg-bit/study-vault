@@ -154,6 +154,17 @@ def test_get_note_concepts():
     assert "relevance_score" in data["concepts"][0]
 
 
+def test_cloze_flashcards():
+    notes = client.get("/api/notes").json()
+    note_id = notes[0]["id"]
+    res = client.post(f"/api/notes/{note_id}/cloze-cards")
+    assert res.status_code == 200
+    data = res.json()
+    assert "cloze_cards" in data
+    assert len(data["cloze_cards"]) > 0
+    assert "[ ... ]" in data["cloze_cards"][0]["front"]
+
+
 def test_upload_pdf_note():
     from pdf_parser import create_sample_pdf_bytes
     courses = client.get("/api/courses").json()

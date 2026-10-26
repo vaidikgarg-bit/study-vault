@@ -30,6 +30,7 @@ from models import (
 from ai_generator import (
     generate_quiz_from_notes,
     generate_flashcards_from_notes,
+    generate_cloze_flashcards,
     extract_key_concepts
 )
 
@@ -497,6 +498,19 @@ def generate_or_get_flashcards(note_id: int):
     conn.close()
 
     return {"note_id": note_id, "note_title": note["title"], "flashcards": cards}
+
+
+@app.post("/api/notes/{note_id}/cloze-cards")
+def get_cloze_flashcards(note_id: int):
+    """Generates fill-in-the-blank (Cloze Deletion) flashcards from note concepts."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id, title, content FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    conn.close()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    cards = generate_cloze_flashcards(note["title"], note["content"])
+    return {"note_id": note_id, "note_title": note["title"], "cloze_cards": cards}
 
 
 @app.post("/api/flashcards/review")
