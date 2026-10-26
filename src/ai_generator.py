@@ -247,18 +247,28 @@ def generate_cloze_flashcards(title: str, text: str, max_cards: int = 6) -> List
         else:
             # Check for key terms inside informative sentences
             match_keywords = re.findall(r"\b([A-Z][a-z0-9\-]+(?:\s+[A-Z][a-z0-9\-]+)*)\b", line)
+            target_kw = None
             for kw in match_keywords:
-                if len(kw) > 4 and kw.lower() not in STOPWORDS and len(line) > len(kw) + 20:
-                    cloze_sentence = line.replace(kw, f"[ ... ]", 1)
-                    cloze_cards.append({
-                        "id": len(cloze_cards) + 1,
-                        "front": cloze_sentence,
-                        "back": f"Missing term: **{kw}**\n\nFull statement: {line}",
-                        "blank": kw,
-                        "type": "cloze",
-                        "topic": title
-                    })
+                if len(kw) > 4 and kw.lower() not in STOPWORDS and len(line) > len(kw) + 15:
+                    target_kw = kw
                     break
+
+            if not target_kw:
+                # Fallback to substantive words (length >= 6) not in stopwords
+                candidate_words = [w for w in re.findall(r"\b[A-Za-z\-]{6,}\b", line) if w.lower() not in STOPWORDS]
+                if candidate_words:
+                    target_kw = candidate_words[0]
+
+            if target_kw:
+                cloze_sentence = line.replace(target_kw, "[ ... ]", 1)
+                cloze_cards.append({
+                    "id": len(cloze_cards) + 1,
+                    "front": cloze_sentence,
+                    "back": f"Missing term: **{target_kw}**\n\nFull statement: {line}",
+                    "blank": target_kw,
+                    "type": "cloze",
+                    "topic": title
+                })
 
         if len(cloze_cards) >= max_cards:
             break
