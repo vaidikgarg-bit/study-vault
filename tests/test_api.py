@@ -165,6 +165,19 @@ def test_cloze_flashcards():
     assert "[ ... ]" in data["cloze_cards"][0]["front"]
 
 
+def test_regenerate_quiz():
+    notes = client.get("/api/notes").json()
+    note_id = notes[0]["id"]
+    # First generate
+    res1 = client.post(f"/api/notes/{note_id}/quiz")
+    assert res1.status_code == 200
+
+    # Regenerate
+    res2 = client.post(f"/api/notes/{note_id}/quiz/regenerate")
+    assert res2.status_code == 200
+    assert len(res2.json()["questions"]) > 0
+
+
 def test_upload_pdf_note():
     from pdf_parser import create_sample_pdf_bytes
     courses = client.get("/api/courses").json()

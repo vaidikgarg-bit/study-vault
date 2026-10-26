@@ -473,6 +473,27 @@ def generate_or_get_quiz(note_id: int):
     return {"note_id": note_id, "note_title": note["title"], "questions": questions}
 
 
+@app.post("/api/notes/{note_id}/quiz/regenerate", response_model=QuizGenerateResponse)
+def regenerate_quiz(note_id: int):
+    """Bypasses cache and generates a fresh quiz for the given note."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id, title, content FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    if not note:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    conn.execute("DELETE FROM quizzes WHERE note_id = ?;", (note_id,))
+    questions = generate_quiz_from_notes(note["title"], note["content"])
+    conn.execute(
+        "INSERT INTO quizzes (note_id, questions_json) VALUES (?, ?);",
+        (note_id, json.dumps(questions))
+    )
+    conn.commit()
+    conn.close()
+
+    return {"note_id": note_id, "note_title": note["title"], "questions": questions}
+
+
 @app.post("/api/notes/{note_id}/flashcards", response_model=FlashcardsResponse)
 def generate_or_get_flashcards(note_id: int):
     conn = get_db_connection()
