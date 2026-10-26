@@ -3,6 +3,7 @@ SuperMemo-2 (SM-2) Spaced Repetition Algorithm.
 Used by flashcard software like Anki to calculate optimal memory review intervals.
 """
 
+import math
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 
@@ -48,3 +49,33 @@ def calculate_sm2(rating: int, repetitions: int = 0, ease_factor: float = 2.5, i
         "ease_factor": new_ease_factor,
         "due_date": next_review_date
     }
+
+
+def estimate_retention_probability(interval_days: int, days_elapsed: int, ease_factor: float = 2.5) -> float:
+    """
+    Estimates current memory retention percentage using the exponential Ebbinghaus forgetting curve.
+    Formula: R = exp(-ln(2) * (days_elapsed / half_life))
+    where half_life ~ interval_days * (ease_factor / 2.5)
+    """
+    if days_elapsed <= 0:
+        return 100.0
+    half_life = max(1.0, interval_days * (ease_factor / 2.5))
+    retention = math.exp(-0.693147 * (days_elapsed / half_life)) * 100.0
+    return round(max(0.0, min(100.0, retention)), 1)
+
+
+def classify_card_urgency(days_overdue: int) -> str:
+    """
+    Classifies review urgency based on how many days past the scheduled due date.
+    - 'critical': overdue by 3+ days (high forgetting probability)
+    - 'due': due today or 1-2 days overdue
+    - 'upcoming': due in the next 1-3 days
+    - 'learning': fresh card in initial learning steps
+    """
+    if days_overdue >= 3:
+        return "critical"
+    elif days_overdue >= 0:
+        return "due"
+    elif days_overdue >= -3:
+        return "upcoming"
+    return "scheduled"

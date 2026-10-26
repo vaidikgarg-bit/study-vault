@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from config import APP_NAME, APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from database import init_db, get_db_connection
 from pdf_parser import extract_text_from_pdf_bytes
-from spaced_repetition import calculate_sm2
+from spaced_repetition import calculate_sm2, estimate_retention_probability, classify_card_urgency
 from models import (
     CourseCreate, CourseResponse, CourseUpdate,
     NoteCreate, NoteResponse, NoteUpdate, FavoriteToggleResponse,
@@ -544,7 +544,10 @@ def review_flashcard_sm2(
     """Calculates next review schedule using the SuperMemo-2 (SM-2) algorithm."""
     if not (1 <= rating <= 4):
         raise HTTPException(status_code=400, detail="Rating must be between 1 (Again) and 4 (Easy)")
-    return calculate_sm2(rating, repetitions, ease_factor, interval_days)
+    res = calculate_sm2(rating, repetitions, ease_factor, interval_days)
+    res["retention_forecast"] = estimate_retention_probability(res["interval_days"], 0, res["ease_factor"])
+    res["urgency"] = classify_card_urgency(0)
+    return res
 
 
 # ---------------------------------------------------------------------------
