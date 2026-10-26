@@ -129,6 +129,51 @@ def create_course(course: CourseCreate):
     }
 
 
+@app.put("/api/courses/{course_id}", response_model=CourseResponse)
+def update_course(course_id: int, course_update: CourseUpdate):
+    """Updates course title, department, or theme color."""
+    conn = get_db_connection()
+    course = conn.execute("SELECT * FROM courses WHERE id = ?;", (course_id,)).fetchone()
+    if not course:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    new_title = course_update.title.strip() if course_update.title is not None else course["title"]
+    new_dept = course_update.department.strip() if course_update.department is not None else course["department"]
+    new_color = course_update.color.strip() if course_update.color is not None else course["color"]
+
+    conn.execute(
+        "UPDATE courses SET title = ?, department = ?, color = ? WHERE id = ?;",
+        (new_title, new_dept, new_color, course_id)
+    )
+    conn.commit()
+
+    count = conn.execute("SELECT COUNT(*) FROM notes WHERE course_id = ?;", (course_id,)).fetchone()[0]
+    conn.close()
+
+    return {
+        "id": course_id,
+        "code": course["code"],
+        "title": new_title,
+        "department": new_dept,
+        "color": new_color,
+        "note_count": count,
+        "created_at": str(course["created_at"])
+    }
+
+
+@app.delete("/api/courses/{course_id}")
+def delete_course(course_id: int):
+    """Deletes course and cascades deletion of notes, quizzes, and flashcards."""
+    conn = get_db_connection()
+    cursor = conn.execute("DELETE FROM courses WHERE id = ?;", (course_id,))
+    conn.commit()
+    conn.close()
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return {"message": "Course deleted successfully"}
+
+
 # ---------------------------------------------------------------------------
 # Notes Endpoints
 # ---------------------------------------------------------------------------

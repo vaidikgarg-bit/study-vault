@@ -52,6 +52,17 @@ def test_create_course():
     assert data["code"] == f"BIO{rnd}"
     assert data["title"] == "Molecular Biology & Genetics"
 
+    course_id = data["id"]
+    # Update course
+    update_res = client.put(f"/api/courses/{course_id}", json={"title": "Advanced Molecular Genetics", "color": "emerald"})
+    assert update_res.status_code == 200
+    assert update_res.json()["title"] == "Advanced Molecular Genetics"
+    assert update_res.json()["color"] == "emerald"
+
+    # Delete course
+    del_res = client.delete(f"/api/courses/{course_id}")
+    assert del_res.status_code == 200
+
 
 def test_get_notes():
     response = client.get("/api/notes")
