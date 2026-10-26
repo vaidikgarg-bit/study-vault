@@ -275,9 +275,17 @@ function renderNotes(notes) {
             <i class="fa-solid fa-clone"></i> Flashcards
           </button>
         </div>
-        <button onclick="deleteNote(${n.id})" class="text-slate-500 hover:text-red-400 p-1.5 text-xs transition" title="Delete Note">
-          <i class="fa-solid fa-trash"></i>
-        </button>
+        <div class="flex items-center gap-1">
+          <a href="/api/notes/${n.id}/export/markdown" download class="text-slate-400 hover:text-indigo-300 p-1.5 text-xs transition" title="Export as Markdown (.md)">
+            <i class="fa-solid fa-file-arrow-down"></i>
+          </a>
+          <a href="/api/notes/${n.id}/export/json" download class="text-slate-400 hover:text-emerald-300 p-1.5 text-xs transition" title="Export as JSON">
+            <i class="fa-solid fa-code"></i>
+          </a>
+          <button onclick="deleteNote(${n.id})" class="text-slate-500 hover:text-red-400 p-1.5 text-xs transition" title="Delete Note">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
       </div>
     </div>
   `).join("");
