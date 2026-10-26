@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from config import APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from database import init_db, get_db_connection
 from pdf_parser import extract_text_from_pdf_bytes
 from spaced_repetition import calculate_sm2
@@ -31,9 +32,9 @@ from ai_generator import generate_quiz_from_notes, generate_flashcards_from_note
 init_db()
 
 app = FastAPI(
-    title="StudyVault API",
-    description="Course Notes Hub and AI-Powered Quiz & Flashcard Study Engine",
-    version="1.0.0"
+    title=APP_TITLE,
+    description=APP_DESCRIPTION,
+    version=APP_VERSION
 )
 
 # Enable CORS for local development
