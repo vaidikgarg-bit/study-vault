@@ -21,8 +21,8 @@ from database import init_db, get_db_connection
 from pdf_parser import extract_text_from_pdf_bytes
 from spaced_repetition import calculate_sm2
 from models import (
-    CourseCreate, CourseResponse,
-    NoteCreate, NoteResponse,
+    CourseCreate, CourseResponse, CourseUpdate,
+    NoteCreate, NoteResponse, NoteUpdate, FavoriteToggleResponse,
     QuizGenerateResponse, FlashcardsResponse,
     QuizAttemptCreate, QuizAttemptResponse,
     AnalyticsResponse, HealthResponse
@@ -237,6 +237,44 @@ async def upload_pdf_note(
         "content": parsed["content"],
         "created_at": str(created_at)
     }
+
+
+@app.put("/api/notes/{note_id}", response_model=NoteResponse)
+def update_note(note_id: int, note_update: NoteUpdate):
+    """Updates an existing note's title, topic, content, tags, or favorite status."""
+    conn = get_db_connection()
+    existing = conn.execute("SELECT * FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    new_title = note_update.title.strip() if note_update.title is not None else existing["title"]
+    new_topic = note_update.topic.strip() if note_update.topic is not None else existing["topic"]
+    new_content = note_update.content.strip() if note_update.content is not None else existing["content"]
+    new_tags = note_update.tags.strip() if note_update.tags is not None else (existing["tags"] or "")
+    new_fav = int(note_update.is_favorite) if note_update.is_favorite is not None else (existing["is_favorite"] or 0)
+
+    # Invalidate cached quiz & flashcards if content changed
+    if note_update.content is not None and note_update.content.strip() != existing["content"]:
+        conn.execute("DELETE FROM quizzes WHERE note_id = ?;", (note_id,))
+        conn.execute("DELETE FROM flashcards WHERE note_id = ?;", (note_id,))
+
+    conn.execute("""
+    UPDATE notes
+    SET title = ?, topic = ?, content = ?, tags = ?, is_favorite = ?
+    WHERE id = ?;
+    """, (new_title, new_topic, new_content, new_tags, new_fav, note_id))
+    conn.commit()
+
+    updated = conn.execute("""
+    SELECT n.*, c.code as course_code, c.title as course_title
+    FROM notes n
+    JOIN courses c ON n.course_id = c.id
+    WHERE n.id = ?;
+    """, (note_id,)).fetchone()
+    conn.close()
+
+    return dict(updated)
 
 
 @app.delete("/api/notes/{note_id}")

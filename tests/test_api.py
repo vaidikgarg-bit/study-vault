@@ -81,6 +81,21 @@ Constant Time: O(1) algorithms execute in fixed time regardless of input size.""
     assert "id" in data
 
 
+def test_update_note():
+    notes = client.get("/api/notes").json()
+    note_id = notes[0]["id"]
+
+    update_payload = {
+        "title": "Updated BST & Balanced Trees",
+        "tags": "trees,binary-search,avl"
+    }
+    response = client.put(f"/api/notes/{note_id}", json=update_payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["title"] == "Updated BST & Balanced Trees"
+    assert "trees" in data["tags"]
+
+
 def test_upload_pdf_note():
     from pdf_parser import create_sample_pdf_bytes
     courses = client.get("/api/courses").json()
