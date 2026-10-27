@@ -61,7 +61,8 @@ from models import (
     CollaboratorCreate, CollaboratorResponse,
     SpeechChunkItem, NoteSpeechResponse,
     GraphNode, GraphEdge, KnowledgeGraphResponse,
-    MilestoneCreate, MilestoneUpdate, MilestoneResponse
+    MilestoneCreate, MilestoneUpdate, MilestoneResponse,
+    BulkTagUpdateRequest, BulkTagUpdateResponse, QuizCustomRequest
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -1094,6 +1095,41 @@ def delete_notes_bulk(req: BulkDeleteRequest):
     count = cursor.rowcount
     conn.close()
     return {"deleted_count": count, "deleted_ids": req.note_ids}
+
+
+@app.post("/api/notes/bulk/tags", response_model=BulkTagUpdateResponse, tags=["Notes"])
+def bulk_update_note_tags(payload: BulkTagUpdateRequest):
+    """Applies bulk tag additions and removals across specified note records."""
+    if not payload.note_ids:
+        return {"updated_count": 0, "note_ids": [], "message": "No note IDs provided"}
+
+    conn = get_db_connection()
+    placeholders = ",".join("?" for _ in payload.note_ids)
+    rows = conn.execute(f"SELECT id, tags FROM notes WHERE id IN ({placeholders});", payload.note_ids).fetchall()
+
+    add_tags = [t.strip().lower() for t in payload.add_tags if t.strip()]
+    remove_tags = {t.strip().lower() for t in payload.remove_tags if t.strip()}
+
+    updated_ids = []
+    for r in rows:
+        existing = [t.strip().lower() for t in (r["tags"] or "").split(",") if t.strip()]
+        tag_set = set(existing)
+        tag_set.difference_update(remove_tags)
+        for t in add_tags:
+            tag_set.add(t)
+
+        new_tags = ", ".join(sorted(tag_set))
+        conn.execute("UPDATE notes SET tags = ? WHERE id = ?;", (new_tags, r["id"]))
+        updated_ids.append(r["id"])
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "updated_count": len(updated_ids),
+        "note_ids": updated_ids,
+        "message": f"Successfully updated tags for {len(updated_ids)} notes"
+    }
 
 
 @app.delete("/api/notes/{note_id}")
