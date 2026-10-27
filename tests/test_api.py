@@ -617,6 +617,36 @@ def test_course_collaborator_lifecycle():
     assert not any(c["user_email"] == email for c in collabs_after)
 
 
+def test_course_milestone_lifecycle():
+    courses = client.get("/api/courses").json()
+    cid = courses[0]["id"]
+
+    # 1. Create milestone
+    res_create = client.post(f"/api/courses/{cid}/milestones", json={
+        "title": "Complete Chapter 5 Reading",
+        "target_date": "2026-11-10",
+        "is_completed": False
+    })
+    assert res_create.status_code == 201
+    m_id = res_create.json()["id"]
+
+    # 2. List milestones
+    res_list = client.get(f"/api/courses/{cid}/milestones")
+    assert res_list.status_code == 200
+    milestones = res_list.json()
+    assert any(m["id"] == m_id for m in milestones)
+
+    # 3. Patch completion
+    res_patch = client.patch(f"/api/courses/{cid}/milestones/{m_id}", json={"is_completed": True})
+    assert res_patch.status_code == 200
+    assert res_patch.json()["is_completed"] is True
+
+    # 4. Delete milestone
+    res_del = client.delete(f"/api/courses/{cid}/milestones/{m_id}")
+    assert res_del.status_code == 200
+
+
+
 
 
 
