@@ -78,6 +78,8 @@ def init_db():
         cursor.execute("ALTER TABLE courses ADD COLUMN instructor TEXT DEFAULT '';")
     if "term" not in c_cols:
         cursor.execute("ALTER TABLE courses ADD COLUMN term TEXT DEFAULT 'Fall 2026';")
+    if "is_archived" not in c_cols:
+        cursor.execute("ALTER TABLE courses ADD COLUMN is_archived INTEGER DEFAULT 0;")
 
     # Cached Quizzes Table
     cursor.execute("""
@@ -146,6 +148,7 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_favorite ON notes(is_favorite);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(is_pinned);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_courses_code ON courses(code);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_courses_archived ON courses(is_archived);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_note_history_note_id ON note_history(note_id);")
 
     # Check if we should seed default student courses
