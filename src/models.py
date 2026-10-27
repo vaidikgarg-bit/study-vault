@@ -2,7 +2,7 @@
 Pydantic data schemas for StudyVault API.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pydantic import BaseModel, Field
 
 
@@ -188,5 +188,21 @@ class FlashcardImportResponse(BaseModel):
     imported_count: int
     total_cards: int
     message: str
+
+
+class CourseFocusStats(BaseModel):
+    course_id: int
+    course_code: str
+    course_title: str
+    total_minutes: int
+    session_count: int
+
+
+class StudySessionSummary(BaseModel):
+    total_focus_minutes: int
+    total_sessions: int
+    by_session_type: Dict[str, int]
+    by_course: List[CourseFocusStats]
+
 
 
