@@ -14,7 +14,8 @@ from ai_generator import (
     calculate_readability_score,
     generate_cloze_flashcards,
     generate_quiz_from_notes,
-    generate_flashcards_from_notes
+    generate_flashcards_from_notes,
+    extract_definitions_and_takeaways
 )
 
 
@@ -96,3 +97,18 @@ def test_quiz_question_difficulty():
     assert len(quiz) >= 1
     assert "difficulty" in quiz[0]
     assert quiz[0]["difficulty"] in ["easy", "medium", "hard"]
+
+
+def test_extract_definitions_and_takeaways():
+    text = """
+    A Binary Search Tree is a hierarchical node-based data structure.
+    Dijkstra Algorithm: A graph search algorithm solving single-source shortest path problems.
+    - Search takes O(log N) average time.
+    - Fails on negative weight graphs.
+    """
+    res = extract_definitions_and_takeaways(text)
+    assert len(res["definitions"]) >= 1
+    assert any("Dijkstra Algorithm" in d["term"] or "Binary Search Tree" in d["term"] for d in res["definitions"])
+    assert len(res["takeaways"]) >= 2
+    assert any("O(log N)" in t for t in res["takeaways"])
+

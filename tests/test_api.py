@@ -467,4 +467,16 @@ def test_retention_decay_forecast_endpoint():
     assert "recommended_review_day" in data
 
 
+def test_note_takeaways_endpoint():
+    notes = client.get("/api/notes").json()
+    note_id = notes[0]["id"]
+    res = client.get(f"/api/notes/{note_id}/takeaways")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["note_id"] == note_id
+    assert "definitions" in data
+    assert "takeaways" in data
+
+
+
 
