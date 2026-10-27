@@ -142,3 +142,21 @@ class StudySessionCreate(BaseModel):
     course_id: int
     duration_minutes: int
     session_type: str = "flashcards"  # flashcards, quiz, reading
+
+
+class NoteHistoryResponse(BaseModel):
+    id: int
+    note_id: int
+    title: str
+    topic: str
+    content: str
+    tags: str = ""
+    change_summary: Optional[str] = "Update note content"
+    created_at: str
+
+
+class NoteRevertResponse(BaseModel):
+    id: int
+    reverted_to_history_id: int
+    message: str
+
