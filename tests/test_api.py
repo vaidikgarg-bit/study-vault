@@ -425,3 +425,36 @@ def test_note_history_and_revert():
     assert reverted_note["content"] == "Original content of the note."
     assert reverted_note["title"] == "Version 1 Title"
 
+
+def test_course_archival_and_filtering():
+    import random
+    rnd = random.randint(1000, 9999)
+    created = client.post("/api/courses", json={
+        "code": f"ARCH{rnd}",
+        "title": "Archival Test Course",
+        "department": "Archives",
+        "color": "slate"
+    }).json()
+    course_id = created["id"]
+    assert created["is_archived"] is False
+
+    # Toggle archive
+    arch_res = client.post(f"/api/courses/{course_id}/archive")
+    assert arch_res.status_code == 200
+    assert arch_res.json()["is_archived"] is True
+
+    # Filtered listing (include_archived=false)
+    active_courses = client.get("/api/courses?include_archived=false").json()
+    active_ids = [c["id"] for c in active_courses]
+    assert course_id not in active_ids
+
+    # Unarchive
+    unarch_res = client.post(f"/api/courses/{course_id}/archive")
+    assert unarch_res.status_code == 200
+    assert unarch_res.json()["is_archived"] is False
+
+    active_courses_again = client.get("/api/courses?include_archived=false").json()
+    active_ids_again = [c["id"] for c in active_courses_again]
+    assert course_id in active_ids_again
+
+
