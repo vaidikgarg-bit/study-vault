@@ -592,6 +592,32 @@ def test_csv_exports():
     assert "percentage" in res_quiz_csv.text
 
 
+def test_course_collaborator_lifecycle():
+    courses = client.get("/api/courses").json()
+    cid = courses[0]["id"]
+    email = "researcher@campus.edu"
+
+    # Add collaborator
+    res_add = client.post(f"/api/courses/{cid}/collaborators", json={"user_email": email, "role": "editor"})
+    assert res_add.status_code == 201
+    assert res_add.json()["user_email"] == email
+
+    # List collaborators
+    res_list = client.get(f"/api/courses/{cid}/collaborators")
+    assert res_list.status_code == 200
+    collabs = res_list.json()
+    assert any(c["user_email"] == email and c["role"] == "editor" for c in collabs)
+
+    # Remove collaborator
+    res_del = client.delete(f"/api/courses/{cid}/collaborators/{email}")
+    assert res_del.status_code == 200
+
+    # Ensure removed
+    collabs_after = client.get(f"/api/courses/{cid}/collaborators").json()
+    assert not any(c["user_email"] == email for c in collabs_after)
+
+
+
 
 
 
