@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from config import APP_NAME, APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from database import init_db, get_db_connection
 from markdown_util import strip_markdown_formatting, sanitize_markdown
+from anki_util import serialize_cards_to_anki, parse_anki_tsv
 from pdf_parser import extract_text_from_pdf_bytes
 from spaced_repetition import calculate_sm2, estimate_retention_probability, classify_card_urgency
 from models import (
@@ -716,6 +717,44 @@ def export_note_txt(note_id: int):
     return Response(
         content=txt,
         media_type="text/plain",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@app.get("/api/notes/{note_id}/export/anki")
+def export_note_anki(note_id: int):
+    """Exports note flashcards in Anki-compatible TSV format."""
+    conn = get_db_connection()
+    note = conn.execute("""
+    SELECT n.*, c.code as course_code
+    FROM notes n
+    JOIN courses c ON n.course_id = c.id
+    WHERE n.id = ?;
+    """, (note_id,)).fetchone()
+    if not note:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    cached = conn.execute("SELECT cards_json FROM flashcards WHERE note_id = ?;", (note_id,)).fetchone()
+    if cached:
+        cards = json.loads(cached["cards_json"])
+    else:
+        cards = generate_flashcards_from_notes(note["title"], note["content"])
+        conn.execute(
+            "INSERT OR REPLACE INTO flashcards (note_id, cards_json) VALUES (?, ?);",
+            (note_id, json.dumps(cards))
+        )
+        conn.commit()
+    conn.close()
+
+    deck_name = f"{note['course_code']}::{note['topic'].replace(' ', '_')}"
+    tsv_content = serialize_cards_to_anki(cards, deck_name=deck_name)
+    safe_title = "".join(c for c in note["title"] if c.isalnum() or c in (" ", "-", "_")).strip().replace(" ", "_")
+    filename = f"{note['course_code']}_{safe_title}_anki.tsv"
+
+    return Response(
+        content=tsv_content,
+        media_type="text/tab-separated-values",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 
