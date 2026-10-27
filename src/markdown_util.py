@@ -59,3 +59,38 @@ def get_word_frequency_distribution(text: str, top_n: int = 10) -> dict:
     for t in tokens:
         freq[t] = freq.get(t, 0) + 1
     return dict(sorted(freq.items(), key=lambda x: x[1], reverse=True)[:top_n])
+
+
+def extract_code_snippets(markdown_text: str) -> dict:
+    """
+    Extracts fenced code blocks (```lang ... ```) from markdown notes,
+    identifying programming languages, line counts, and frequency distribution.
+    """
+    if not markdown_text:
+        return {"total_snippets": 0, "languages": {}, "snippets": []}
+
+    pattern = re.compile(r"```([a-zA-Z0-9_\-+]*)\n?(.*?)```", re.DOTALL)
+    matches = pattern.findall(markdown_text)
+
+    snippets = []
+    lang_counts = {}
+
+    for idx, (lang, code) in enumerate(matches, 1):
+        language = lang.strip().lower() if lang.strip() else "plaintext"
+        code_body = code.strip("\n")
+        lines = code_body.splitlines() if code_body else []
+        lang_counts[language] = lang_counts.get(language, 0) + 1
+
+        snippets.append({
+            "index": idx,
+            "language": language,
+            "line_count": len(lines),
+            "char_count": len(code_body),
+            "code": code_body
+        })
+
+    return {
+        "total_snippets": len(snippets),
+        "languages": lang_counts,
+        "snippets": snippets
+    }
