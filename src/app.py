@@ -367,6 +367,40 @@ def remove_course_collaborator(course_id: int, user_email: str):
     return {"message": f"Collaborator {user_email} removed successfully"}
 
 
+@app.get("/api/courses/{course_id}/graph", response_model=KnowledgeGraphResponse, tags=["Courses"])
+def get_course_knowledge_graph(course_id: int):
+    """Builds an aggregated course-wide knowledge graph connecting topics and notes."""
+    conn = get_db_connection()
+    course = conn.execute("SELECT * FROM courses WHERE id = ?;", (course_id,)).fetchone()
+    if not course:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    notes = conn.execute("SELECT id, title, topic FROM notes WHERE course_id = ?;", (course_id,)).fetchall()
+    conn.close()
+
+    nodes = [{"id": f"course-{course['id']}", "label": course["code"], "category": "course", "weight": 5}]
+    edges = []
+    seen_topics = set()
+
+    for n in notes:
+        topic_id = f"topic-{n['topic'].lower().replace(' ', '-')}"
+        if topic_id not in seen_topics:
+            seen_topics.add(topic_id)
+            nodes.append({"id": topic_id, "label": n["topic"], "category": "topic", "weight": 3})
+            edges.append({"source": f"course-{course['id']}", "target": topic_id, "relation": "contains_topic"})
+
+        note_node_id = f"note-{n['id']}"
+        nodes.append({"id": note_node_id, "label": n["title"], "category": "note", "weight": 2})
+        edges.append({"source": topic_id, "target": note_node_id, "relation": "contains_note"})
+
+    return {
+        "title": f"{course['code']} - {course['title']} Knowledge Network",
+        "nodes": nodes,
+        "edges": edges
+    }
+
+
 # ---------------------------------------------------------------------------
 # Notes Endpoints
 # ---------------------------------------------------------------------------
