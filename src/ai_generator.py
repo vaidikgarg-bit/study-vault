@@ -415,3 +415,52 @@ def calculate_readability_score(text: str) -> dict:
         level = "Advanced Academic"
 
     return {"score": clamped, "level": level}
+
+
+def extract_definitions_and_takeaways(text: str) -> Dict[str, Any]:
+    """
+    Extracts explicit technical definitions ('X is defined as Y', 'X refers to Y', 'X: Y')
+    and actionable key takeaways from study notes.
+    """
+    if not text or not text.strip():
+        return {"definitions": [], "takeaways": []}
+
+    definitions = []
+    takeaways = []
+
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+    def_colon_pattern = re.compile(r"^([A-Z][A-Za-z0-9\s\-]{2,30}):\s+(.+)$")
+    def_is_pattern = re.compile(r"^([A-Z][A-Za-z0-9\s\-]{2,30})\s+(is(?:\s+a|\s+an|\s+the|\s+defined\s+as)?)\s+(.+)$", re.IGNORECASE)
+
+    for line in lines:
+        if line.startswith(("- ", "* ", "• ")) or re.match(r"^\d+\.\s+", line):
+            cleaned = re.sub(r"^([*\-•]|\d+\.)\s+", "", line).strip()
+            if len(cleaned) > 15:
+                takeaways.append(cleaned)
+
+        m_colon = def_colon_pattern.match(line)
+        if m_colon:
+            term = m_colon.group(1).strip()
+            definition = m_colon.group(2).strip()
+            if len(term.split()) <= 5 and len(definition) > 10:
+                definitions.append({"term": term, "definition": definition})
+                continue
+
+        m_is = def_is_pattern.match(line)
+        if m_is and not line.startswith(("#", "-", "*", ">")):
+            term = m_is.group(1).strip()
+            definition = m_is.group(3).strip()
+            if len(term.split()) <= 5 and len(definition) > 15:
+                definitions.append({"term": term, "definition": f"{m_is.group(2)} {definition}"})
+
+    if not takeaways:
+        sentences = [s.strip() for s in re.split(r"[.!?]+", text) if len(s.strip()) > 25]
+        for s in sentences[:5]:
+            if any(kw in s.lower() for kw in ["key", "important", "must", "algorithm", "property", "result", "principle"]):
+                takeaways.append(s)
+
+    return {
+        "definitions": definitions[:8],
+        "takeaways": takeaways[:8]
+    }
