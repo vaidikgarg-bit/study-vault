@@ -262,6 +262,18 @@ class LeitnerBoxSummary(BaseModel):
     card_count: int
 
 
+class CollaboratorCreate(BaseModel):
+    user_email: str
+    role: str = "editor"  # viewer, editor, admin
+
+
+class CollaboratorResponse(CollaboratorCreate):
+    id: int
+    course_id: int
+    added_at: str
+
+
+
 
 
 
