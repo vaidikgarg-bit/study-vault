@@ -53,6 +53,13 @@ An intelligent campus web application built with **FastAPI**, **SQLite**, and **
 - [x] `feat(scheduler): implement SuperMemo-2 retention forecast and mastery levels`
 - [x] `feat(export): add multi-format document exporter (Markdown, JSON, Plaintext)`
 - [x] `feat(maint): add automated SQLite hot backup and vacuum script`
+- [x] `feat(versioning): note revision snapshots and rollback recovery engine`
+- [x] `feat(archival): course archiving and filtered active course lists`
+- [x] `feat(anki): native Anki TSV/CSV deck exporter and bulk flashcard importer`
+- [x] `feat(decay): Ebbinghaus retention decay forecast and optimal review window predictor`
+- [x] `feat(nlp): automated definition and key takeaway extractor`
+- [x] `feat(code): programming language detector and syntax snippet aggregator`
+- [x] `feat(gamification): student milestone badges and focus time aggregation analytics`
 
 ---
 
@@ -103,26 +110,40 @@ pytest tests -v
 | `DELETE` | `/api/notes/bulk` | Bulk delete multiple notes in one call |
 | `GET` | `/api/tags` | List all unique tags and counts |
 | `POST` | `/api/study-sessions` | Log study focus time session |
-| `GET` | `/api/courses` | List all enrolled courses with note counts |
+| `GET` | `/api/study-sessions/stats` | Aggregated focus time by activity and course |
+| `GET` | `/api/courses` | List enrolled courses (`?include_archived=true\|false`) |
 | `POST` | `/api/courses` | Enroll a new course |
 | `PUT` | `/api/courses/{id}` | Update course title, department, or color |
+| `POST` | `/api/courses/{id}/archive` | Toggle course archival status |
 | `DELETE` | `/api/courses/{id}` | Delete course and cascade notes |
 | `GET` | `/api/notes` | List/search notes (`?search=`, `?course_id=`, `?favorite_only=`, `?tag=`) |
 | `POST` | `/api/notes` | Upload a new lecture note |
-| `PUT` | `/api/notes/{id}` | Update title, topic, content, or tags |
+| `PUT` | `/api/notes/{id}` | Update title, topic, content, or tags (saves revision snapshot) |
+| `GET` | `/api/notes/{id}/history` | Retrieve revision history snapshots |
+| `POST` | `/api/notes/{id}/revert/{history_id}` | Restore note to earlier revision |
 | `DELETE` | `/api/notes/{id}` | Delete a note and its cached quizzes |
 | `POST` | `/api/notes/{id}/favorite` | Toggle note bookmark/favorite |
 | `GET` | `/api/notes/{id}/export/markdown` | Download note as Markdown (.md) |
 | `GET` | `/api/notes/{id}/export/json` | Download note and cached study cards as JSON |
+| `GET` | `/api/notes/{id}/export/txt` | Download note as plain text (.txt) |
+| `GET` | `/api/notes/{id}/export/anki` | Download flashcards in Anki-compatible TSV format |
+| `POST` | `/api/notes/{id}/import/flashcards` | Bulk import custom flashcard deck into note |
+| `GET` | `/api/notes/{id}/summary` | Extract executive bullet summary points |
 | `GET` | `/api/notes/{id}/concepts` | Extract key technical concepts and terms |
+| `GET` | `/api/notes/{id}/takeaways` | Extract definitions and actionable takeaways |
+| `GET` | `/api/notes/{id}/code-snippets` | Extract programming code snippets & language syntax |
 | `POST` | `/api/notes/{id}/quiz` | Generate or retrieve AI quiz for a note |
 | `POST` | `/api/notes/{id}/quiz/regenerate` | Force cache refresh and regenerate quiz |
 | `POST` | `/api/notes/{id}/flashcards` | Generate or retrieve flashcards for a note |
 | `POST` | `/api/notes/{id}/cloze-cards` | Generate cloze deletion fill-in-the-blank cards |
 | `POST` | `/api/flashcards/review` | SuperMemo-2 (SM-2) repetition scheduler calculation |
+| `GET` | `/api/flashcards/due` | Retrieve all review decks available for study |
+| `GET` | `/api/flashcards/decay-forecast` | Ebbinghaus forgetting curve projected retention decay |
 | `POST` | `/api/quiz-attempts` | Record student quiz score & time |
+| `GET` | `/api/quiz-attempts/{id}` | Lookup full metadata for specific quiz attempt |
 | `GET` | `/api/analytics` | Overall student learning metrics |
 | `GET` | `/api/analytics/activity` | Recent attempt history and streak analytics |
+| `GET` | `/api/analytics/badges` | Student milestone achievements and badge statuses |
 
 ---
 
