@@ -92,3 +92,20 @@ def classify_card_urgency(days_overdue: int) -> str:
     elif days_overdue >= -3:
         return "upcoming"
     return "scheduled"
+
+
+def project_retention_curve(interval_days: int, ease_factor: float = 2.5, days_ahead: int = 14) -> list:
+    """
+    Simulates memory retention decay across future days according to Ebbinghaus forgetting dynamics.
+    Returns daily retention projections and identifies optimal review window before memory decay drops below 80%.
+    """
+    curve = []
+    for day in range(0, days_ahead + 1):
+        pct = estimate_retention_probability(interval_days, day, ease_factor)
+        curve.append({
+            "day": day,
+            "retention_percent": pct,
+            "needs_review": pct < 80.0
+        })
+    return curve
+
