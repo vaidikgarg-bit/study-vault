@@ -646,6 +646,46 @@ def test_course_milestone_lifecycle():
     assert res_del.status_code == 200
 
 
+def test_bulk_tagging_and_custom_quiz():
+    notes = client.get("/api/notes").json()
+    assert len(notes) >= 2
+    n_ids = [notes[0]["id"], notes[1]["id"]]
+
+    # 1. Bulk tag notes
+    bulk_res = client.post("/api/notes/bulk/tags", json={
+        "note_ids": n_ids,
+        "add_tags": ["midterm2026", "review"],
+        "remove_tags": []
+    })
+    assert bulk_res.status_code == 200
+    assert bulk_res.json()["updated_count"] == 2
+
+    n0 = client.get(f"/api/notes/{n_ids[0]}").json()
+    assert "midterm2026" in n0["tags"]
+    assert "review" in n0["tags"]
+
+    # 2. Bulk remove tag
+    remove_res = client.post("/api/notes/bulk/tags", json={
+        "note_ids": [n_ids[0]],
+        "add_tags": [],
+        "remove_tags": ["review"]
+    })
+    assert remove_res.status_code == 200
+    n0_after = client.get(f"/api/notes/{n_ids[0]}").json()
+    assert "review" not in n0_after["tags"]
+    assert "midterm2026" in n0_after["tags"]
+
+    # 3. Custom quiz generation
+    quiz_res = client.post(f"/api/notes/{n_ids[0]}/quiz/custom", json={
+        "question_count": 2,
+        "difficulty": "medium"
+    })
+    assert quiz_res.status_code == 200
+    quiz_data = quiz_res.json()
+    assert quiz_data["note_id"] == n_ids[0]
+    assert len(quiz_data["questions"]) <= 2
+
+
 
 
 
