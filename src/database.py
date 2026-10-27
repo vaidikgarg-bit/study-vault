@@ -196,6 +196,20 @@ def init_db():
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_collab_course ON course_collaborators(course_id);")
 
+    # Course Milestones Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS course_milestones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        course_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        target_date TEXT DEFAULT '',
+        is_completed INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE
+    );
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_milestones_course ON course_milestones(course_id);")
+
     # Performance Indices
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_course_id ON notes(course_id);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_favorite ON notes(is_favorite);")
