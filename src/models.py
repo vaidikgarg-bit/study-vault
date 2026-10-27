@@ -289,6 +289,27 @@ class NoteSpeechResponse(BaseModel):
     chunks: List[SpeechChunkItem]
 
 
+class GraphNode(BaseModel):
+    id: str
+    label: str
+    category: str = "concept"
+    weight: int = 1
+
+
+class GraphEdge(BaseModel):
+    source: str
+    target: str
+    relation: str = "relates_to"
+
+
+class KnowledgeGraphResponse(BaseModel):
+    note_id: Optional[int] = None
+    title: str
+    nodes: List[GraphNode]
+    edges: List[GraphEdge]
+
+
+
 
 
 
