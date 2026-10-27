@@ -495,6 +495,23 @@ def test_note_code_snippets_endpoint():
     assert data["snippets"][0]["language"] == "python"
 
 
+def test_study_session_stats_aggregation():
+    courses = client.get("/api/courses").json()
+    cid = courses[0]["id"]
+    client.post("/api/study-sessions", json={"course_id": cid, "duration_minutes": 30, "session_type": "reading"})
+    client.post("/api/study-sessions", json={"course_id": cid, "duration_minutes": 45, "session_type": "quiz"})
+
+    res = client.get("/api/study-sessions/stats")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total_focus_minutes"] >= 75
+    assert data["total_sessions"] >= 2
+    assert "reading" in data["by_session_type"]
+    assert "quiz" in data["by_session_type"]
+    assert len(data["by_course"]) >= 1
+
+
+
 
 
 
