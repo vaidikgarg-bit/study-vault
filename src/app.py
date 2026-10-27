@@ -33,7 +33,8 @@ from models import (
     TagCount,
     StudySessionCreate,
     NoteHistoryResponse, NoteRevertResponse,
-    FlashcardImportRequest, FlashcardImportResponse
+    FlashcardImportRequest, FlashcardImportResponse,
+    StudySessionSummary, CourseFocusStats
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -1173,6 +1174,52 @@ def log_study_session(session: StudySessionCreate):
     conn.commit()
     conn.close()
     return {"id": row["id"], "course_id": session.course_id, "duration_minutes": session.duration_minutes, "session_type": session.session_type}
+
+
+@app.get("/api/study-sessions/stats", response_model=StudySessionSummary, tags=["Analytics"])
+def get_study_session_stats():
+    """Returns aggregated focus time, breakdown by session activity, and distribution per course."""
+    conn = get_db_connection()
+    total_row = conn.execute("""
+        SELECT COALESCE(SUM(duration_minutes), 0) as total_mins, COUNT(id) as total_sessions
+        FROM study_sessions;
+    """).fetchone()
+
+    type_rows = conn.execute("""
+        SELECT session_type, COALESCE(SUM(duration_minutes), 0) as mins
+        FROM study_sessions
+        GROUP BY session_type;
+    """).fetchall()
+    by_type = {r["session_type"]: r["mins"] for r in type_rows}
+
+    course_rows = conn.execute("""
+        SELECT s.course_id, c.code as course_code, c.title as course_title,
+               COALESCE(SUM(s.duration_minutes), 0) as total_minutes,
+               COUNT(s.id) as session_count
+        FROM study_sessions s
+        JOIN courses c ON s.course_id = c.id
+        GROUP BY s.course_id
+        ORDER BY total_minutes DESC;
+    """).fetchall()
+    conn.close()
+
+    by_course = [
+        CourseFocusStats(
+            course_id=r["course_id"],
+            course_code=r["course_code"],
+            course_title=r["course_title"],
+            total_minutes=r["total_minutes"],
+            session_count=r["session_count"]
+        )
+        for r in course_rows
+    ]
+
+    return {
+        "total_focus_minutes": total_row["total_mins"],
+        "total_sessions": total_row["total_sessions"],
+        "by_session_type": by_type,
+        "by_course": by_course
+    }
 
 
 @app.get("/api/analytics/activity")
