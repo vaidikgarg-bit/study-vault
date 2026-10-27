@@ -126,11 +126,27 @@ def init_db():
     );
     """)
 
+    # Note History / Versioning Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS note_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        note_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        topic TEXT NOT NULL,
+        content TEXT NOT NULL,
+        tags TEXT DEFAULT '',
+        change_summary TEXT DEFAULT 'Update note content',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (note_id) REFERENCES notes (id) ON DELETE CASCADE
+    );
+    """)
+
     # Performance Indices
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_course_id ON notes(course_id);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_favorite ON notes(is_favorite);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(is_pinned);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_courses_code ON courses(code);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_note_history_note_id ON note_history(note_id);")
 
     # Check if we should seed default student courses
     cursor.execute("SELECT COUNT(*) FROM courses;")
