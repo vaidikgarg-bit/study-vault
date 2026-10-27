@@ -334,6 +334,35 @@ def add_course_collaborator(course_id: int, collab: CollaboratorCreate):
     }
 
 
+@app.get("/api/courses/{course_id}/collaborators", response_model=List[CollaboratorResponse], tags=["Courses"])
+def list_course_collaborators(course_id: int):
+    """Lists all student collaborators for a course."""
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT id, course_id, user_email, role, added_at
+        FROM course_collaborators
+        WHERE course_id = ?
+        ORDER BY id ASC;
+    """, (course_id,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+@app.delete("/api/courses/{course_id}/collaborators/{user_email}", tags=["Courses"])
+def remove_course_collaborator(course_id: int, user_email: str):
+    """Removes a collaborator from the course vault."""
+    conn = get_db_connection()
+    cursor = conn.execute(
+        "DELETE FROM course_collaborators WHERE course_id = ? AND user_email = ?;",
+        (course_id, user_email.strip().lower())
+    )
+    conn.commit()
+    conn.close()
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Collaborator not found")
+    return {"message": f"Collaborator {user_email} removed successfully"}
+
+
 # ---------------------------------------------------------------------------
 # Notes Endpoints
 # ---------------------------------------------------------------------------
