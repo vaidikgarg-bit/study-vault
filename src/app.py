@@ -55,7 +55,8 @@ from models import (
     StudySessionSummary, CourseFocusStats,
     SearchResultResponse, ScoredNoteItem,
     PomodoroSessionCreate, PomodoroSessionResponse, PomodoroStats,
-    LeitnerBoxMove, LeitnerBoxResult, LeitnerBoxSummary
+    LeitnerBoxMove, LeitnerBoxResult, LeitnerBoxSummary,
+    CollaboratorCreate, CollaboratorResponse
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -302,6 +303,34 @@ def get_course_stats(course_id: int):
         "estimated_reading_time_mins": est_reading_time,
         "unique_topics": topics,
         "quiz_attempts_taken": quiz_attempts_count
+    }
+
+
+@app.post("/api/courses/{course_id}/collaborators", response_model=CollaboratorResponse, status_code=status.HTTP_201_CREATED, tags=["Courses"])
+def add_course_collaborator(course_id: int, collab: CollaboratorCreate):
+    """Invites or updates a student collaborator on a course vault."""
+    conn = get_db_connection()
+    course = conn.execute("SELECT id FROM courses WHERE id = ?;", (course_id,)).fetchone()
+    if not course:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    cursor = conn.execute("""
+        INSERT INTO course_collaborators (course_id, user_email, role)
+        VALUES (?, ?, ?)
+        ON CONFLICT(course_id, user_email) DO UPDATE SET role = excluded.role
+        RETURNING id, added_at;
+    """, (course_id, collab.user_email.strip().lower(), collab.role))
+    row = cursor.fetchone()
+    conn.commit()
+    conn.close()
+
+    return {
+        "id": row[0],
+        "course_id": course_id,
+        "user_email": collab.user_email.strip().lower(),
+        "role": collab.role,
+        "added_at": str(row[1])
     }
 
 
