@@ -241,6 +241,28 @@ class PomodoroStats(BaseModel):
     completed_rate_percent: float
 
 
+class LeitnerBoxMove(BaseModel):
+    card_id: int
+    current_box: int = 1
+    recalled_successfully: bool
+
+
+class LeitnerBoxResult(BaseModel):
+    card_id: int
+    previous_box: int
+    new_box: int
+    interval_days: int
+    next_review_date: str
+    message: str
+
+
+class LeitnerBoxSummary(BaseModel):
+    box: int
+    interval_days: int
+    card_count: int
+
+
+
 
 
 
