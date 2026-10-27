@@ -13,12 +13,23 @@ class CourseCreate(BaseModel):
     color: Optional[str] = Field(default="indigo", json_schema_extra={"example": "indigo"})
     instructor: Optional[str] = Field(default="", json_schema_extra={"example": "Dr. Alan Turing"})
     term: Optional[str] = Field(default="Fall 2026", json_schema_extra={"example": "Fall 2026"})
+    is_archived: Optional[bool] = False
 
 
 class CourseUpdate(BaseModel):
     title: Optional[str] = None
     department: Optional[str] = None
     color: Optional[str] = None
+    instructor: Optional[str] = None
+    term: Optional[str] = None
+    is_archived: Optional[bool] = None
+
+
+class CourseArchiveResponse(BaseModel):
+    id: int
+    is_archived: bool
+    message: str
+
 
 
 class CourseResponse(CourseCreate):
