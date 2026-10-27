@@ -22,7 +22,7 @@ from database import init_db, get_db_connection
 from markdown_util import strip_markdown_formatting, sanitize_markdown
 from anki_util import serialize_cards_to_anki, parse_anki_tsv
 from pdf_parser import extract_text_from_pdf_bytes
-from spaced_repetition import calculate_sm2, estimate_retention_probability, classify_card_urgency
+from spaced_repetition import calculate_sm2, estimate_retention_probability, classify_card_urgency, project_retention_curve
 from models import (
     CourseCreate, CourseResponse, CourseUpdate, CourseArchiveResponse,
     NoteCreate, NoteResponse, NoteUpdate, FavoriteToggleResponse,
@@ -999,6 +999,29 @@ def get_due_flashcard_decks():
             "created_at": str(r["created_at"])
         })
     return {"total_decks": len(decks), "decks": decks}
+
+
+@app.get("/api/flashcards/decay-forecast", tags=["Flashcards"])
+def get_retention_decay_forecast(
+    interval_days: int = 6,
+    ease_factor: float = 2.5,
+    days_ahead: int = 14
+):
+    """Generates day-by-day projected memory retention curve using Ebbinghaus decay model."""
+    if interval_days < 1:
+        raise HTTPException(status_code=400, detail="interval_days must be >= 1")
+    if ease_factor < 1.0:
+        raise HTTPException(status_code=400, detail="ease_factor must be >= 1.0")
+
+    forecast = project_retention_curve(interval_days, ease_factor, days_ahead)
+    sub_80 = next((p["day"] for p in forecast if p["retention_percent"] < 80.0), None)
+
+    return {
+        "interval_days": interval_days,
+        "ease_factor": ease_factor,
+        "recommended_review_day": sub_80 if sub_80 is not None else days_ahead,
+        "projection": forecast
+    }
 
 
 # ---------------------------------------------------------------------------
