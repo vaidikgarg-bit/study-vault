@@ -8,7 +8,12 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
-from markdown_util import strip_markdown_formatting, sanitize_markdown, get_word_frequency_distribution
+from markdown_util import (
+    strip_markdown_formatting,
+    sanitize_markdown,
+    get_word_frequency_distribution,
+    extract_code_snippets
+)
 
 
 def test_strip_markdown_headers_and_bold():
@@ -47,3 +52,30 @@ def test_word_frequency_distribution():
     assert dist["binary"] == 2
     assert dist["tree"] == 2
     assert dist["search"] == 2
+
+
+def test_extract_code_snippets():
+    md = """
+    Here is some Python:
+    ```python
+    def hello():
+        print("world")
+    ```
+    And some SQL:
+    ```sql
+    SELECT * FROM courses;
+    ```
+    And plaintext:
+    ```
+    unspecified language
+    ```
+    """
+    res = extract_code_snippets(md)
+    assert res["total_snippets"] == 3
+    assert res["languages"]["python"] == 1
+    assert res["languages"]["sql"] == 1
+    assert res["languages"]["plaintext"] == 1
+    assert res["snippets"][0]["language"] == "python"
+    assert "print(\"world\")" in res["snippets"][0]["code"]
+    assert res["snippets"][0]["line_count"] == 2
+

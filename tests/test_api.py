@@ -478,5 +478,23 @@ def test_note_takeaways_endpoint():
     assert "takeaways" in data
 
 
+def test_note_code_snippets_endpoint():
+    courses = client.get("/api/courses").json()
+    cid = courses[0]["id"]
+    note = client.post("/api/notes", json={
+        "course_id": cid,
+        "title": "Code Snippet Note",
+        "topic": "Python Intro",
+        "content": "Check this:\n```python\nprint(42)\n```"
+    }).json()
+
+    res = client.get(f"/api/notes/{note['id']}/code-snippets")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total_snippets"] == 1
+    assert data["snippets"][0]["language"] == "python"
+
+
+
 
 

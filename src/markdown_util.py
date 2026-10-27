@@ -77,7 +77,7 @@ def extract_code_snippets(markdown_text: str) -> dict:
 
     for idx, (lang, code) in enumerate(matches, 1):
         language = lang.strip().lower() if lang.strip() else "plaintext"
-        code_body = code.strip("\n")
+        code_body = code.strip()
         lines = code_body.splitlines() if code_body else []
         lang_counts[language] = lang_counts.get(language, 0) + 1
 
