@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from config import APP_NAME, APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from database import init_db, get_db_connection
 from migrations import get_applied_migrations, MIGRATION_REGISTRY, run_pending_migrations
+from leitner import calculate_leitner_transition, LEITNER_BOX_INTERVALS
 from search_engine import rank_notes
 from markdown_util import (
     strip_markdown_formatting,
@@ -53,7 +54,8 @@ from models import (
     FlashcardImportRequest, FlashcardImportResponse,
     StudySessionSummary, CourseFocusStats,
     SearchResultResponse, ScoredNoteItem,
-    PomodoroSessionCreate, PomodoroSessionResponse, PomodoroStats
+    PomodoroSessionCreate, PomodoroSessionResponse, PomodoroStats,
+    LeitnerBoxMove, LeitnerBoxResult, LeitnerBoxSummary
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -1230,6 +1232,67 @@ def get_card_stability(
     if interval_days < 1:
         raise HTTPException(status_code=400, detail="interval_days must be >= 1")
     return calculate_fsrs_metrics(repetitions, interval_days, ease_factor, days_elapsed)
+
+
+@app.post("/api/flashcards/{note_id}/leitner/review", response_model=LeitnerBoxResult, tags=["Flashcards"])
+def review_flashcard_leitner(note_id: int, move: LeitnerBoxMove):
+    """Updates card box progression using the classic 5-Box Leitner Spaced Repetition System."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    if not note:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    existing = conn.execute(
+        "SELECT box FROM leitner_state WHERE note_id = ? AND card_id = ?;",
+        (note_id, move.card_id)
+    ).fetchone()
+
+    cur_box = existing["box"] if existing else move.current_box
+    res = calculate_leitner_transition(cur_box, move.recalled_successfully)
+
+    conn.execute("""
+        INSERT INTO leitner_state (note_id, card_id, box, last_reviewed, next_review)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?)
+        ON CONFLICT(note_id, card_id) DO UPDATE SET
+            box = excluded.box,
+            last_reviewed = CURRENT_TIMESTAMP,
+            next_review = excluded.next_review;
+    """, (note_id, move.card_id, res["new_box"], res["next_review_date"]))
+    conn.commit()
+    conn.close()
+
+    return {
+        "card_id": move.card_id,
+        "previous_box": res["previous_box"],
+        "new_box": res["new_box"],
+        "interval_days": res["interval_days"],
+        "next_review_date": res["next_review_date"],
+        "message": f"Card {move.card_id} {res['action']} (Box {res['new_box']})"
+    }
+
+
+@app.get("/api/flashcards/{note_id}/leitner/boxes", response_model=List[LeitnerBoxSummary], tags=["Flashcards"])
+def get_leitner_boxes_summary(note_id: int):
+    """Returns distribution of cards across all 5 Leitner boxes for a given note deck."""
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT box, COUNT(id) as count
+        FROM leitner_state
+        WHERE note_id = ?
+        GROUP BY box;
+    """, (note_id,)).fetchall()
+    conn.close()
+
+    counts = {r["box"]: r["count"] for r in rows}
+    return [
+        LeitnerBoxSummary(
+            box=b,
+            interval_days=LEITNER_BOX_INTERVALS[b],
+            card_count=counts.get(b, 0)
+        )
+        for b in range(1, 6)
+    ]
 
 
 # ---------------------------------------------------------------------------
