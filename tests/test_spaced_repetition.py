@@ -8,7 +8,13 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
-from spaced_repetition import calculate_sm2, estimate_retention_probability, classify_card_urgency, get_mastery_level
+from spaced_repetition import (
+    calculate_sm2,
+    estimate_retention_probability,
+    classify_card_urgency,
+    get_mastery_level,
+    project_retention_curve
+)
 
 
 def test_sm2_first_review_success():
@@ -66,3 +72,14 @@ def test_sm2_interval_modifier():
     standard = calculate_sm2(rating=3, repetitions=2, ease_factor=2.5, interval_days=6, interval_modifier=1.0)
     doubled = calculate_sm2(rating=3, repetitions=2, ease_factor=2.5, interval_days=6, interval_modifier=2.0)
     assert doubled["interval_days"] >= standard["interval_days"] * 2 - 1
+
+
+def test_retention_curve_projection():
+    curve = project_retention_curve(interval_days=7, ease_factor=2.5, days_ahead=10)
+    assert len(curve) == 11  # days 0 through 10
+    assert curve[0]["day"] == 0
+    assert curve[0]["retention_percent"] == 100.0
+    assert curve[0]["needs_review"] is False
+    assert curve[-1]["day"] == 10
+    assert curve[-1]["retention_percent"] < curve[0]["retention_percent"]
+

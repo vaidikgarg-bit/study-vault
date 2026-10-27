@@ -458,3 +458,13 @@ def test_course_archival_and_filtering():
     assert course_id in active_ids_again
 
 
+def test_retention_decay_forecast_endpoint():
+    res = client.get("/api/flashcards/decay-forecast?interval_days=7&ease_factor=2.5&days_ahead=14")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["interval_days"] == 7
+    assert len(data["projection"]) == 15
+    assert "recommended_review_day" in data
+
+
+
