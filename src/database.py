@@ -167,6 +167,21 @@ def init_db():
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_pomodoro_course ON pomodoro_sessions(course_id);")
 
+    # Leitner Box State Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS leitner_state (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        note_id INTEGER NOT NULL,
+        card_id INTEGER NOT NULL,
+        box INTEGER DEFAULT 1,
+        last_reviewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        next_review TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(note_id, card_id),
+        FOREIGN KEY (note_id) REFERENCES notes (id) ON DELETE CASCADE
+    );
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_leitner_box ON leitner_state(box);")
+
     # Performance Indices
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_course_id ON notes(course_id);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_favorite ON notes(is_favorite);")
