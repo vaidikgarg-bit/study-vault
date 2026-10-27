@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from datetime import datetime, timezone
 from config import APP_NAME, APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from database import init_db, get_db_connection
-from markdown_util import strip_markdown_formatting, sanitize_markdown
+from markdown_util import strip_markdown_formatting, sanitize_markdown, extract_code_snippets
 from anki_util import serialize_cards_to_anki, parse_anki_tsv
 from pdf_parser import extract_text_from_pdf_bytes
 from spaced_repetition import calculate_sm2, estimate_retention_probability, classify_card_urgency, project_retention_curve
@@ -836,6 +836,21 @@ def get_note_takeaways(note_id: int):
         "definitions": extracted["definitions"],
         "takeaways": extracted["takeaways"]
     }
+
+
+@app.get("/api/notes/{note_id}/code-snippets", tags=["Notes"])
+def get_note_code_snippets(note_id: int):
+    """Extracts programming code snippets and language syntax stats from a study note."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id, title, content FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    conn.close()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    result = extract_code_snippets(note["content"])
+    result["note_id"] = note_id
+    result["title"] = note["title"]
+    return result
 
 
 # ---------------------------------------------------------------------------
