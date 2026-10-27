@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from config import APP_NAME, APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from database import init_db, get_db_connection
 from migrations import get_applied_migrations, MIGRATION_REGISTRY, run_pending_migrations
+from audio_util import chunk_note_for_speech
 from leitner import calculate_leitner_transition, LEITNER_BOX_INTERVALS
 from search_engine import rank_notes
 from markdown_util import (
@@ -56,7 +57,8 @@ from models import (
     SearchResultResponse, ScoredNoteItem,
     PomodoroSessionCreate, PomodoroSessionResponse, PomodoroStats,
     LeitnerBoxMove, LeitnerBoxResult, LeitnerBoxSummary,
-    CollaboratorCreate, CollaboratorResponse
+    CollaboratorCreate, CollaboratorResponse,
+    SpeechChunkItem, NoteSpeechResponse
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -1066,6 +1068,27 @@ def get_note_table_of_contents(note_id: int):
         "total_links": len(links),
         "table_of_contents": toc,
         "links": links
+    }
+
+
+@app.get("/api/notes/{note_id}/speech-chunks", response_model=NoteSpeechResponse, tags=["Notes"])
+def get_note_speech_chunks(note_id: int):
+    """Partitions note text into acoustic clauses with speech rate timing for TTS playback."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id, title, content FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    conn.close()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    chunks = chunk_note_for_speech(note["content"])
+    total_audio = sum(c["estimated_duration_seconds"] for c in chunks)
+
+    return {
+        "note_id": note_id,
+        "title": note["title"],
+        "total_chunks": len(chunks),
+        "total_audio_seconds": round(total_audio, 2),
+        "chunks": chunks
     }
 
 
