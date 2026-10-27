@@ -304,6 +304,9 @@ function renderNotes(notes) {
           <a href="/api/notes/${n.id}/export/json" download class="text-slate-400 hover:text-emerald-300 p-1.5 text-xs transition" title="Export as JSON">
             <i class="fa-solid fa-code"></i>
           </a>
+          <a href="/api/notes/${n.id}/export/anki" download class="text-slate-400 hover:text-amber-300 p-1.5 text-xs transition" title="Export to Anki (.tsv)">
+            <i class="fa-solid fa-file-export"></i>
+          </a>
           <button onclick="deleteNote(${n.id})" class="text-slate-500 hover:text-red-400 p-1.5 text-xs transition" title="Delete Note">
             <i class="fa-solid fa-trash"></i>
           </button>
@@ -658,6 +661,33 @@ async function loadAnalytics() {
     document.getElementById("stat-notes").innerText = data.total_notes;
     document.getElementById("stat-quizzes").innerText = data.quizzes_taken;
     document.getElementById("stat-avg").innerText = `${data.average_score_percent}%`;
+
+    // Load badges
+    const bRes = await fetch("/api/analytics/badges");
+    if (bRes.ok) {
+      const bData = await bRes.json();
+      const badgeCountEl = document.getElementById("badge-unlocked-count");
+      if (badgeCountEl) {
+        badgeCountEl.innerText = `${bData.unlocked_count} / ${bData.total_badges} Unlocked`;
+      }
+      const bContainer = document.getElementById("badges-container");
+      if (bContainer) {
+        bContainer.innerHTML = bData.badges.map(b => `
+          <div class="p-3.5 rounded-xl border ${b.unlocked ? 'border-amber-500/40 bg-amber-500/10' : 'border-slate-700/60 bg-slate-900/40 opacity-50'} flex items-start gap-3 transition">
+            <div class="w-9 h-9 rounded-lg ${b.unlocked ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30' : 'bg-slate-800 text-slate-500'} flex items-center justify-center text-sm font-bold shrink-0">
+              <i class="fa-solid ${b.icon}"></i>
+            </div>
+            <div class="space-y-0.5 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <h4 class="text-xs font-bold ${b.unlocked ? 'text-amber-300' : 'text-slate-400'} truncate">${b.title}</h4>
+                ${b.unlocked ? '<i class="fa-solid fa-circle-check text-amber-400 text-[10px]"></i>' : ''}
+              </div>
+              <p class="text-[11px] text-slate-400 leading-snug line-clamp-2">${b.description}</p>
+            </div>
+          </div>
+        `).join("");
+      }
+    }
   } catch (err) {
     console.error("Failed to load analytics:", err);
   }
