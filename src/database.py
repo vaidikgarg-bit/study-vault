@@ -182,6 +182,20 @@ def init_db():
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_leitner_box ON leitner_state(box);")
 
+    # Course Collaborators Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS course_collaborators (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        course_id INTEGER NOT NULL,
+        user_email TEXT NOT NULL,
+        role TEXT DEFAULT 'editor',
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(course_id, user_email),
+        FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE
+    );
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_collab_course ON course_collaborators(course_id);")
+
     # Performance Indices
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_course_id ON notes(course_id);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_favorite ON notes(is_favorite);")
