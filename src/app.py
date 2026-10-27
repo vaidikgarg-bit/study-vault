@@ -1322,6 +1322,26 @@ def regenerate_quiz(note_id: int):
     return {"note_id": note_id, "note_title": note["title"], "questions": questions}
 
 
+@app.post("/api/notes/{note_id}/quiz/custom", response_model=QuizGenerateResponse, tags=["Quizzes"])
+def generate_custom_quiz(note_id: int, request: QuizCustomRequest):
+    """Generates a customized quiz with specified question count and difficulty level filter."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id, title, content FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    conn.close()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    questions = generate_quiz_from_notes(note["title"], note["content"])
+    if request.difficulty:
+        target_diff = request.difficulty.lower().strip()
+        filtered = [q for q in questions if q.get("difficulty", "medium").lower() == target_diff]
+        if filtered:
+            questions = filtered
+
+    count = max(1, request.question_count)
+    return {"note_id": note_id, "note_title": note["title"], "questions": questions[:count]}
+
+
 @app.post("/api/notes/{note_id}/flashcards", response_model=FlashcardsResponse)
 def generate_or_get_flashcards(note_id: int):
     conn = get_db_connection()
