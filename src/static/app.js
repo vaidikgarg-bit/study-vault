@@ -171,8 +171,37 @@ async function loadCourses() {
     const noteCourseSelect = document.getElementById("note_course_id");
     noteCourseSelect.innerHTML = allCourses.map(c => `<option value="${c.id}">${c.code} - ${c.title}</option>`).join("");
 
+    if (allCourses.length > 0) {
+      loadMilestones(allCourses[0].id);
+    }
   } catch (err) {
     console.error("Failed to load courses:", err);
+  }
+}
+
+async function loadMilestones(courseId) {
+  const container = document.getElementById("course-milestones-list");
+  if (!container) return;
+  if (!courseId) {
+    container.innerHTML = `<div class="text-slate-500 italic">No course selected</div>`;
+    return;
+  }
+  try {
+    const res = await fetch(`/api/courses/${courseId}/milestones`);
+    if (!res.ok) return;
+    const milestones = await res.json();
+    if (milestones.length === 0) {
+      container.innerHTML = `<div class="text-slate-500 italic">No pending milestones</div>`;
+      return;
+    }
+    container.innerHTML = milestones.map(m => `
+      <div class="flex items-center justify-between p-1.5 rounded-lg bg-slate-900/60 border border-slate-700/40">
+        <span class="${m.is_completed ? 'line-through text-slate-500' : 'text-slate-200'} font-medium truncate max-w-[120px]">${m.title}</span>
+        <span class="text-[10px] text-slate-400 font-mono">${m.target_date || ''}</span>
+      </div>
+    `).join("");
+  } catch (e) {
+    container.innerHTML = `<div class="text-slate-500 italic">Milestones unavailable</div>`;
   }
 }
 
@@ -585,6 +614,13 @@ function showCard(index) {
   document.getElementById("card-front-text").innerText = card.front;
   document.getElementById("card-back-text").innerText = card.back;
   document.getElementById("card-counter").innerText = `${currentCardIndex + 1} / ${currentFlashcards.length}`;
+
+  const boxElem = document.getElementById("leitner-box-indicator");
+  if (boxElem) {
+    const boxNum = card.leitner_box || 1;
+    boxElem.innerText = `Leitner Box ${boxNum}`;
+  }
+
   triggerMathRender();
 }
 
