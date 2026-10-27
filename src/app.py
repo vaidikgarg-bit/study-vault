@@ -493,6 +493,58 @@ def get_note_history(note_id: int):
     return [dict(r) for r in rows]
 
 
+@app.post("/api/notes/{note_id}/revert/{history_id}", response_model=NoteResponse, tags=["Notes"])
+def revert_note_to_history(note_id: int, history_id: int):
+    """Reverts a note to an earlier revision snapshot recorded in note_history."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT * FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    if not note:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    history = conn.execute("""
+        SELECT * FROM note_history WHERE id = ? AND note_id = ?;
+    """, (history_id, note_id)).fetchone()
+    if not history:
+        conn.close()
+        raise HTTPException(status_code=404, detail="History revision not found")
+
+    # Record current state to history before rollback
+    conn.execute("""
+        INSERT INTO note_history (note_id, title, topic, content, tags, change_summary)
+        VALUES (?, ?, ?, ?, ?, ?);
+    """, (
+        note["id"],
+        note["title"],
+        note["topic"],
+        note["content"],
+        note["tags"] or "",
+        f"Pre-revert snapshot before reverting to history #{history_id}"
+    ))
+
+    # Apply historical state
+    conn.execute("""
+        UPDATE notes
+        SET title = ?, topic = ?, content = ?, tags = ?
+        WHERE id = ?;
+    """, (history["title"], history["topic"], history["content"], history["tags"], note_id))
+
+    # Invalidate cache
+    conn.execute("DELETE FROM quizzes WHERE note_id = ?;", (note_id,))
+    conn.execute("DELETE FROM flashcards WHERE note_id = ?;", (note_id,))
+    conn.commit()
+
+    reverted = conn.execute("""
+        SELECT n.*, c.code as course_code, c.title as course_title
+        FROM notes n
+        JOIN courses c ON n.course_id = c.id
+        WHERE n.id = ?;
+    """, (note_id,)).fetchone()
+    conn.close()
+
+    return enrich_note_dict(dict(reverted))
+
+
 @app.post("/api/notes/{note_id}/favorite", response_model=FavoriteToggleResponse)
 def toggle_note_favorite(note_id: int):
     """Toggles bookmark/favorite status for a study note."""
