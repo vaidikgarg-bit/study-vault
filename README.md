@@ -21,9 +21,19 @@ An intelligent campus web application built with **FastAPI**, **SQLite**, and **
   - Automatically synthesizes multiple-choice questions from study notes.
   - Interactive quiz runner with instant visual feedback (green for correct, red for incorrect) and conceptual explanations.
   - Dual-mode AI: Supports Google Gemini API online mode + built-in offline NLP heuristic extraction.
-- **🗂️ 3D Spaced-Repetition Flashcards**:
+- **🗂️ 3D Spaced-Repetition Flashcards & Leitner Box Engine**:
   - Interactive flashcards with smooth 3D flip animations on click.
   - Active recall navigation with next/previous controls and card counters.
+  - Multi-tier 5-box Leitner repetition algorithm with automatic interval scaling.
+- **🕸️ Knowledge Graph & Concept Network**:
+  - Automatically identifies key technical concepts and constructs relational concept graphs.
+  - Course-wide knowledge dependency maps linking interconnected topics.
+- **🎙️ Audio Speech Narration Segmenter**:
+  - Natural phonetic chunking of study notes with duration and word counts for TTS pipelines.
+- **📅 Course Milestones & Academic Deadlines**:
+  - Target deadline scheduling, completion status tracking, and course progress tracking.
+- **🤝 Multi-User Course Collaboration**:
+  - Role-based shared course vaults (viewer, editor, admin) with audit timestamps.
 - **📊 Student Performance Analytics**:
   - Tracks total courses enrolled, study notes uploaded, quizzes completed, and average mastery percentage.
 - **🚀 Automated CI/CD**:
@@ -152,6 +162,20 @@ pytest tests -v
 | `GET` | `/api/flashcards/due` | Retrieve all review decks available for study |
 | `GET` | `/api/flashcards/decay-forecast` | Ebbinghaus forgetting curve projected retention decay |
 | `GET` | `/api/flashcards/stability` | FSRS memory stability days and retrievability status |
+| `POST` | `/api/flashcards/leitner/move` | Move card through 5 Leitner boxes based on recall |
+| `GET` | `/api/flashcards/leitner/summary` | Aggregate card counts across Leitner boxes |
+| `GET` | `/api/notes/{id}/speech-chunks` | Speech segments and audio timing estimates for TTS |
+| `GET` | `/api/notes/{id}/knowledge-graph` | Note concept entity and relationship graph |
+| `GET` | `/api/courses/{id}/graph` | Course-wide knowledge and topic network |
+| `POST` | `/api/courses/{id}/milestones` | Create academic milestone or deadline |
+| `GET` | `/api/courses/{id}/milestones` | List academic milestones for course |
+| `PATCH` | `/api/courses/{id}/milestones/{mid}` | Update milestone title, deadline, or completion |
+| `DELETE` | `/api/courses/{id}/milestones/{mid}` | Delete course milestone |
+| `POST` | `/api/courses/{id}/collaborators` | Invite collaborator with role (viewer, editor, admin) |
+| `GET` | `/api/courses/{id}/collaborators` | List collaborators for shared course |
+| `DELETE` | `/api/courses/{id}/collaborators/{cid}` | Remove collaborator from course |
+| `POST` | `/api/notes/bulk/tags` | Bulk add or remove tags across multiple notes |
+| `POST` | `/api/notes/{id}/quiz/custom` | Generate customized quiz with count and difficulty |
 | `POST` | `/api/quiz-attempts` | Record student quiz score & time |
 | `GET` | `/api/quiz-attempts/{id}` | Lookup full metadata for specific quiz attempt |
 | `GET` | `/api/analytics` | Overall student learning metrics |
