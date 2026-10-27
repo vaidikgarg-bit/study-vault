@@ -430,6 +430,65 @@ def add_course_milestone(course_id: int, milestone: MilestoneCreate):
     }
 
 
+@app.get("/api/courses/{course_id}/milestones", response_model=List[MilestoneResponse], tags=["Courses"])
+def get_course_milestones(course_id: int):
+    """Retrieves all academic milestones and deadlines for a course."""
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT id, course_id, title, target_date, is_completed, created_at
+        FROM course_milestones
+        WHERE course_id = ?
+        ORDER BY id ASC;
+    """, (course_id,)).fetchall()
+    conn.close()
+    return [{**dict(r), "is_completed": bool(r["is_completed"])} for r in rows]
+
+
+@app.patch("/api/courses/{course_id}/milestones/{milestone_id}", response_model=MilestoneResponse, tags=["Courses"])
+def update_course_milestone(course_id: int, milestone_id: int, update: MilestoneUpdate):
+    """Updates completion or title of an existing course milestone."""
+    conn = get_db_connection()
+    existing = conn.execute("SELECT * FROM course_milestones WHERE id = ? AND course_id = ?;", (milestone_id, course_id)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Milestone not found")
+
+    new_title = update.title.strip() if update.title is not None else existing["title"]
+    new_date = update.target_date if update.target_date is not None else existing["target_date"]
+    new_done = int(update.is_completed) if update.is_completed is not None else existing["is_completed"]
+
+    conn.execute("""
+        UPDATE course_milestones
+        SET title = ?, target_date = ?, is_completed = ?
+        WHERE id = ?;
+    """, (new_title, new_date, new_done, milestone_id))
+    conn.commit()
+
+    updated = conn.execute("SELECT * FROM course_milestones WHERE id = ?;", (milestone_id,)).fetchone()
+    conn.close()
+
+    return {
+        "id": updated["id"],
+        "course_id": updated["course_id"],
+        "title": updated["title"],
+        "target_date": updated["target_date"],
+        "is_completed": bool(updated["is_completed"]),
+        "created_at": str(updated["created_at"])
+    }
+
+
+@app.delete("/api/courses/{course_id}/milestones/{milestone_id}", tags=["Courses"])
+def delete_course_milestone(course_id: int, milestone_id: int):
+    """Deletes a milestone from the course."""
+    conn = get_db_connection()
+    cursor = conn.execute("DELETE FROM course_milestones WHERE id = ? AND course_id = ?;", (milestone_id, course_id))
+    conn.commit()
+    conn.close()
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Milestone not found")
+    return {"message": "Milestone deleted successfully"}
+
+
 # ---------------------------------------------------------------------------
 # Notes Endpoints
 # ---------------------------------------------------------------------------
