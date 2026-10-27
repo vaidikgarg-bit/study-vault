@@ -511,6 +511,20 @@ def test_study_session_stats_aggregation():
     assert len(data["by_course"]) >= 1
 
 
+def test_analytics_badges_endpoint():
+    res = client.get("/api/analytics/badges")
+    assert res.status_code == 200
+    data = res.json()
+    assert "badges" in data
+    assert "unlocked_count" in data
+    assert len(data["badges"]) >= 5
+    # Since we have seeded notes and courses, first_note and multi_course should be unlocked
+    unlocked_ids = [b["id"] for b in data["badges"] if b["unlocked"]]
+    assert "first_note" in unlocked_ids
+    assert "multi_course" in unlocked_ids
+
+
+
 
 
 

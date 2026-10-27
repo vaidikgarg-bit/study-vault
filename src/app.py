@@ -22,6 +22,7 @@ from database import init_db, get_db_connection
 from markdown_util import strip_markdown_formatting, sanitize_markdown, extract_code_snippets
 from anki_util import serialize_cards_to_anki, parse_anki_tsv
 from pdf_parser import extract_text_from_pdf_bytes
+from gamification import evaluate_badges
 from spaced_repetition import calculate_sm2, estimate_retention_probability, classify_card_urgency, project_retention_curve
 from models import (
     CourseCreate, CourseResponse, CourseUpdate, CourseArchiveResponse,
@@ -1274,4 +1275,35 @@ def get_study_activity():
         "recent_attempts": history,
         "daily_breakdown": daily,
         "current_streak_days": streak
+    }
+
+
+@app.get("/api/analytics/badges", tags=["Analytics"])
+def get_user_badges():
+    """Calculates student milestones, achievement badges, and current unlocked statuses."""
+    conn = get_db_connection()
+    c_count = conn.execute("SELECT COUNT(*) FROM courses;").fetchone()[0]
+    n_count = conn.execute("SELECT COUNT(*) FROM notes;").fetchone()[0]
+    q_stats = conn.execute("""
+        SELECT COUNT(id) as count, AVG(CAST(score AS FLOAT) / total_questions * 100) as avg_score
+        FROM quiz_attempts;
+    """).fetchone()
+    f_mins = conn.execute("SELECT COALESCE(SUM(duration_minutes), 0) FROM study_sessions;").fetchone()[0]
+    conn.close()
+
+    metrics = {
+        "total_courses": c_count,
+        "total_notes": n_count,
+        "quizzes_taken": q_stats["count"] or 0,
+        "average_score_percent": round(q_stats["avg_score"] or 0.0, 1),
+        "total_focus_minutes": f_mins
+    }
+
+    badges = evaluate_badges(metrics)
+    unlocked_count = sum(1 for b in badges if b["unlocked"])
+
+    return {
+        "unlocked_count": unlocked_count,
+        "total_badges": len(badges),
+        "badges": badges
     }
