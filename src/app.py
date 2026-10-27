@@ -41,7 +41,8 @@ from ai_generator import (
     generate_cloze_flashcards,
     extract_key_concepts,
     extract_bullet_summary,
-    calculate_readability_score
+    calculate_readability_score,
+    extract_definitions_and_takeaways
 )
 
 # Initialize DB tables on startup
@@ -814,6 +815,27 @@ def get_note_concepts(note_id: int):
 
     concepts = extract_key_concepts(f"{note['title']} \n {note['content']}")
     return {"note_id": note_id, "title": note["title"], "concepts": concepts}
+
+
+@app.get("/api/notes/{note_id}/takeaways", tags=["Notes"])
+def get_note_takeaways(note_id: int):
+    """Extracts explicit definitions and bulleted key takeaways from study notes."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id, title, topic, content FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    conn.close()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    extracted = extract_definitions_and_takeaways(note["content"])
+    return {
+        "note_id": note_id,
+        "title": note["title"],
+        "topic": note["topic"],
+        "definition_count": len(extracted["definitions"]),
+        "takeaway_count": len(extracted["takeaways"]),
+        "definitions": extracted["definitions"],
+        "takeaways": extracted["takeaways"]
+    }
 
 
 # ---------------------------------------------------------------------------
