@@ -392,3 +392,36 @@ def test_log_study_session():
     res = client.post("/api/study-sessions", json={"course_id": cid, "duration_minutes": 25, "session_type": "flashcards"})
     assert res.status_code == 201
     assert res.json()["duration_minutes"] == 25
+
+
+def test_note_history_and_revert():
+    courses = client.get("/api/courses").json()
+    cid = courses[0]["id"]
+    created = client.post("/api/notes", json={
+        "course_id": cid,
+        "title": "Version 1 Title",
+        "topic": "History Topic",
+        "content": "Original content of the note."
+    }).json()
+    note_id = created["id"]
+
+    # First update creates history record of v1
+    client.put(f"/api/notes/{note_id}", json={
+        "title": "Version 2 Title",
+        "content": "Updated content in version 2."
+    })
+
+    hist_res = client.get(f"/api/notes/{note_id}/history")
+    assert hist_res.status_code == 200
+    history = hist_res.json()
+    assert len(history) >= 1
+    assert history[0]["content"] == "Original content of the note."
+    first_history_id = history[0]["id"]
+
+    # Revert to original
+    revert_res = client.post(f"/api/notes/{note_id}/revert/{first_history_id}")
+    assert revert_res.status_code == 200
+    reverted_note = revert_res.json()
+    assert reverted_note["content"] == "Original content of the note."
+    assert reverted_note["title"] == "Version 1 Title"
+
