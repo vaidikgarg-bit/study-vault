@@ -32,7 +32,8 @@ from models import (
     BulkDeleteRequest, BulkDeleteResponse,
     TagCount,
     StudySessionCreate,
-    NoteHistoryResponse, NoteRevertResponse
+    NoteHistoryResponse, NoteRevertResponse,
+    FlashcardImportRequest, FlashcardImportResponse
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -892,6 +893,53 @@ def generate_or_get_flashcards(note_id: int):
     conn.close()
 
     return {"note_id": note_id, "note_title": note["title"], "flashcards": cards}
+
+
+@app.post("/api/notes/{note_id}/import/flashcards", response_model=FlashcardImportResponse, tags=["Flashcards"])
+def import_note_flashcards(note_id: int, req: FlashcardImportRequest):
+    """Imports external flashcards into a study note's deck."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id, topic FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    if not note:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    cached = conn.execute("SELECT cards_json FROM flashcards WHERE note_id = ?;", (note_id,)).fetchone()
+    existing_cards = json.loads(cached["cards_json"]) if cached else []
+
+    if req.replace_existing:
+        target_cards = []
+        next_id = 1
+    else:
+        target_cards = existing_cards
+        next_id = max([c.get("id", 0) for c in target_cards], default=0) + 1
+
+    imported_count = 0
+    for item in req.cards:
+        if not item.front.strip() or not item.back.strip():
+            continue
+        target_cards.append({
+            "id": next_id,
+            "front": item.front.strip(),
+            "back": item.back.strip(),
+            "topic": item.topic.strip() if item.topic else note["topic"]
+        })
+        next_id += 1
+        imported_count += 1
+
+    conn.execute(
+        "INSERT OR REPLACE INTO flashcards (note_id, cards_json) VALUES (?, ?);",
+        (note_id, json.dumps(target_cards))
+    )
+    conn.commit()
+    conn.close()
+
+    return {
+        "note_id": note_id,
+        "imported_count": imported_count,
+        "total_cards": len(target_cards),
+        "message": f"Successfully imported {imported_count} flashcards"
+    }
 
 
 @app.post("/api/notes/{note_id}/cloze-cards")
