@@ -273,6 +273,23 @@ class CollaboratorResponse(CollaboratorCreate):
     added_at: str
 
 
+class SpeechChunkItem(BaseModel):
+    chunk_index: int
+    text: str
+    word_count: int
+    estimated_duration_seconds: float
+    start_time_offset: float
+
+
+class NoteSpeechResponse(BaseModel):
+    note_id: int
+    title: str
+    total_chunks: int
+    total_audio_seconds: float
+    chunks: List[SpeechChunkItem]
+
+
+
 
 
 
