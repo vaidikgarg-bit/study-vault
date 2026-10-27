@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from config import APP_NAME, APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from database import init_db, get_db_connection
 from migrations import get_applied_migrations, MIGRATION_REGISTRY, run_pending_migrations
+from graph_util import build_knowledge_graph
 from audio_util import chunk_note_for_speech
 from leitner import calculate_leitner_transition, LEITNER_BOX_INTERVALS
 from search_engine import rank_notes
@@ -58,7 +59,8 @@ from models import (
     PomodoroSessionCreate, PomodoroSessionResponse, PomodoroStats,
     LeitnerBoxMove, LeitnerBoxResult, LeitnerBoxSummary,
     CollaboratorCreate, CollaboratorResponse,
-    SpeechChunkItem, NoteSpeechResponse
+    SpeechChunkItem, NoteSpeechResponse,
+    GraphNode, GraphEdge, KnowledgeGraphResponse
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -1089,6 +1091,24 @@ def get_note_speech_chunks(note_id: int):
         "total_chunks": len(chunks),
         "total_audio_seconds": round(total_audio, 2),
         "chunks": chunks
+    }
+
+
+@app.get("/api/notes/{note_id}/knowledge-graph", response_model=KnowledgeGraphResponse, tags=["Notes"])
+def get_note_knowledge_graph(note_id: int):
+    """Builds a semantic concept network and relation graph for a study note."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id, title, content FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    conn.close()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    graph = build_knowledge_graph(note["title"], note["content"])
+    return {
+        "note_id": note_id,
+        "title": note["title"],
+        "nodes": graph["nodes"],
+        "edges": graph["edges"]
     }
 
 
