@@ -171,3 +171,22 @@ class NoteRevertResponse(BaseModel):
     reverted_to_history_id: int
     message: str
 
+
+class FlashcardImportItem(BaseModel):
+    front: str
+    back: str
+    topic: Optional[str] = "Imported"
+
+
+class FlashcardImportRequest(BaseModel):
+    cards: List[FlashcardImportItem]
+    replace_existing: bool = False
+
+
+class FlashcardImportResponse(BaseModel):
+    note_id: int
+    imported_count: int
+    total_cards: int
+    message: str
+
+
