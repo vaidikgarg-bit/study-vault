@@ -327,6 +327,24 @@ class MilestoneResponse(MilestoneCreate):
     created_at: str
 
 
+class BulkTagUpdateRequest(BaseModel):
+    note_ids: List[int]
+    add_tags: List[str] = []
+    remove_tags: List[str] = []
+
+
+class BulkTagUpdateResponse(BaseModel):
+    updated_count: int
+    note_ids: List[int]
+    message: str
+
+
+class QuizCustomRequest(BaseModel):
+    question_count: int = 5
+    difficulty: Optional[str] = None
+
+
+
 
 
 
