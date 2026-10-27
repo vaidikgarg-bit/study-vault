@@ -23,7 +23,7 @@ from markdown_util import strip_markdown_formatting, sanitize_markdown
 from pdf_parser import extract_text_from_pdf_bytes
 from spaced_repetition import calculate_sm2, estimate_retention_probability, classify_card_urgency
 from models import (
-    CourseCreate, CourseResponse, CourseUpdate,
+    CourseCreate, CourseResponse, CourseUpdate, CourseArchiveResponse,
     NoteCreate, NoteResponse, NoteUpdate, FavoriteToggleResponse,
     QuizGenerateResponse, FlashcardsResponse,
     QuizAttemptCreate, QuizAttemptResponse,
@@ -98,17 +98,19 @@ def check_health():
 # ---------------------------------------------------------------------------
 
 @app.get("/api/courses", response_model=List[CourseResponse])
-def get_courses():
+def get_courses(include_archived: bool = True):
     conn = get_db_connection()
-    rows = conn.execute("""
+    where_clause = "" if include_archived else "WHERE c.is_archived = 0"
+    rows = conn.execute(f"""
     SELECT c.*, COUNT(n.id) as note_count
     FROM courses c
     LEFT JOIN notes n ON c.id = n.course_id
+    {where_clause}
     GROUP BY c.id
     ORDER BY c.code ASC;
     """).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return [{**dict(r), "is_archived": bool(r["is_archived"])} for r in rows]
 
 
 @app.post("/api/courses", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
@@ -116,8 +118,8 @@ def create_course(course: CourseCreate):
     conn = get_db_connection()
     try:
         cursor = conn.execute(
-            "INSERT INTO courses (code, title, department, color, instructor, term) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, created_at;",
-            (course.code.upper().strip(), course.title.strip(), course.department.strip(), course.color or "indigo", course.instructor or "", course.term or "Fall 2026")
+            "INSERT INTO courses (code, title, department, color, instructor, term, is_archived) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at;",
+            (course.code.upper().strip(), course.title.strip(), course.department.strip(), course.color or "indigo", course.instructor or "", course.term or "Fall 2026", int(bool(course.is_archived)))
         )
         row = cursor.fetchone()
         conn.commit()
@@ -134,6 +136,7 @@ def create_course(course: CourseCreate):
         "color": course.color or "indigo",
         "instructor": course.instructor or "",
         "term": course.term or "Fall 2026",
+        "is_archived": bool(course.is_archived),
         "note_count": 0,
         "created_at": str(created_at)
     }
@@ -141,7 +144,7 @@ def create_course(course: CourseCreate):
 
 @app.put("/api/courses/{course_id}", response_model=CourseResponse)
 def update_course(course_id: int, course_update: CourseUpdate):
-    """Updates course title, department, or theme color."""
+    """Updates course title, department, theme color, instructor, term, or archival status."""
     conn = get_db_connection()
     course = conn.execute("SELECT * FROM courses WHERE id = ?;", (course_id,)).fetchone()
     if not course:
@@ -151,10 +154,13 @@ def update_course(course_id: int, course_update: CourseUpdate):
     new_title = course_update.title.strip() if course_update.title is not None else course["title"]
     new_dept = course_update.department.strip() if course_update.department is not None else course["department"]
     new_color = course_update.color.strip() if course_update.color is not None else course["color"]
+    new_inst = course_update.instructor.strip() if course_update.instructor is not None else course["instructor"]
+    new_term = course_update.term.strip() if course_update.term is not None else course["term"]
+    new_arch = int(course_update.is_archived) if course_update.is_archived is not None else course["is_archived"]
 
     conn.execute(
-        "UPDATE courses SET title = ?, department = ?, color = ? WHERE id = ?;",
-        (new_title, new_dept, new_color, course_id)
+        "UPDATE courses SET title = ?, department = ?, color = ?, instructor = ?, term = ?, is_archived = ? WHERE id = ?;",
+        (new_title, new_dept, new_color, new_inst, new_term, new_arch, course_id)
     )
     conn.commit()
 
@@ -167,8 +173,32 @@ def update_course(course_id: int, course_update: CourseUpdate):
         "title": new_title,
         "department": new_dept,
         "color": new_color,
+        "instructor": new_inst,
+        "term": new_term,
+        "is_archived": bool(new_arch),
         "note_count": count,
         "created_at": str(course["created_at"])
+    }
+
+
+@app.post("/api/courses/{course_id}/archive", response_model=CourseArchiveResponse, tags=["Courses"])
+def toggle_course_archive(course_id: int):
+    """Toggles archival status of a course."""
+    conn = get_db_connection()
+    course = conn.execute("SELECT id, is_archived FROM courses WHERE id = ?;", (course_id,)).fetchone()
+    if not course:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    new_state = 0 if course["is_archived"] else 1
+    conn.execute("UPDATE courses SET is_archived = ? WHERE id = ?;", (new_state, course_id))
+    conn.commit()
+    conn.close()
+
+    return {
+        "id": course_id,
+        "is_archived": bool(new_state),
+        "message": f"Course successfully {'archived' if new_state else 'restored'}"
     }
 
 
