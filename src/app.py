@@ -30,7 +30,8 @@ from models import (
     AnalyticsResponse, HealthResponse,
     BulkDeleteRequest, BulkDeleteResponse,
     TagCount,
-    StudySessionCreate
+    StudySessionCreate,
+    NoteHistoryResponse, NoteRevertResponse
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -437,6 +438,19 @@ def update_note(note_id: int, note_update: NoteUpdate):
     new_tags = note_update.tags.strip() if note_update.tags is not None else (existing["tags"] or "")
     new_fav = int(note_update.is_favorite) if note_update.is_favorite is not None else (existing["is_favorite"] or 0)
 
+    # Record history snapshot before applying edits
+    conn.execute("""
+    INSERT INTO note_history (note_id, title, topic, content, tags, change_summary)
+    VALUES (?, ?, ?, ?, ?, ?);
+    """, (
+        existing["id"],
+        existing["title"],
+        existing["topic"],
+        existing["content"],
+        existing["tags"] or "",
+        "Updated note fields"
+    ))
+
     # Invalidate cached quiz & flashcards if content changed
     if note_update.content is not None and note_update.content.strip() != existing["content"]:
         conn.execute("DELETE FROM quizzes WHERE note_id = ?;", (note_id,))
@@ -458,6 +472,25 @@ def update_note(note_id: int, note_update: NoteUpdate):
     conn.close()
 
     return enrich_note_dict(dict(updated))
+
+
+@app.get("/api/notes/{note_id}/history", response_model=List[NoteHistoryResponse], tags=["Notes"])
+def get_note_history(note_id: int):
+    """Retrieves revision history snapshots for a given note."""
+    conn = get_db_connection()
+    note = conn.execute("SELECT id FROM notes WHERE id = ?;", (note_id,)).fetchone()
+    if not note:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    rows = conn.execute("""
+        SELECT id, note_id, title, topic, content, tags, change_summary, created_at
+        FROM note_history
+        WHERE note_id = ?
+        ORDER BY id DESC;
+    """, (note_id,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 
 @app.post("/api/notes/{note_id}/favorite", response_model=FavoriteToggleResponse)
