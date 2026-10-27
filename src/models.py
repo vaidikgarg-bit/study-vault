@@ -309,6 +309,25 @@ class KnowledgeGraphResponse(BaseModel):
     edges: List[GraphEdge]
 
 
+class MilestoneCreate(BaseModel):
+    title: str
+    target_date: Optional[str] = None
+    is_completed: bool = False
+
+
+class MilestoneUpdate(BaseModel):
+    title: Optional[str] = None
+    target_date: Optional[str] = None
+    is_completed: Optional[bool] = None
+
+
+class MilestoneResponse(MilestoneCreate):
+    id: int
+    course_id: int
+    created_at: str
+
+
+
 
 
 
