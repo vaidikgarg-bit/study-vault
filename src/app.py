@@ -60,7 +60,8 @@ from models import (
     LeitnerBoxMove, LeitnerBoxResult, LeitnerBoxSummary,
     CollaboratorCreate, CollaboratorResponse,
     SpeechChunkItem, NoteSpeechResponse,
-    GraphNode, GraphEdge, KnowledgeGraphResponse
+    GraphNode, GraphEdge, KnowledgeGraphResponse,
+    MilestoneCreate, MilestoneUpdate, MilestoneResponse
 )
 from ai_generator import (
     generate_quiz_from_notes,
@@ -398,6 +399,34 @@ def get_course_knowledge_graph(course_id: int):
         "title": f"{course['code']} - {course['title']} Knowledge Network",
         "nodes": nodes,
         "edges": edges
+    }
+
+
+@app.post("/api/courses/{course_id}/milestones", response_model=MilestoneResponse, status_code=status.HTTP_201_CREATED, tags=["Courses"])
+def add_course_milestone(course_id: int, milestone: MilestoneCreate):
+    """Adds an academic milestone or deadline checklist item to a course."""
+    conn = get_db_connection()
+    course = conn.execute("SELECT id FROM courses WHERE id = ?;", (course_id,)).fetchone()
+    if not course:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    cursor = conn.execute("""
+        INSERT INTO course_milestones (course_id, title, target_date, is_completed)
+        VALUES (?, ?, ?, ?)
+        RETURNING id, created_at;
+    """, (course_id, milestone.title.strip(), milestone.target_date or "", int(milestone.is_completed)))
+    row = cursor.fetchone()
+    conn.commit()
+    conn.close()
+
+    return {
+        "id": row["id"],
+        "course_id": course_id,
+        "title": milestone.title.strip(),
+        "target_date": milestone.target_date or "",
+        "is_completed": bool(milestone.is_completed),
+        "created_at": str(row["created_at"])
     }
 
 
