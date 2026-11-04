@@ -8,7 +8,7 @@ An intelligent campus web application built with **FastAPI**, **SQLite**, and **
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688)
 ![SQLite](https://img.shields.io/badge/sqlite3-embedded-003B57)
 ![CI](https://github.com/vaidikgarg-bit/study-vault/actions/workflows/ci.yml/badge.svg)
-![License](https://img.shields.io/badge/license-MIT-green)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ---
 
